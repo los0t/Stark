@@ -1,1 +1,835 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>さわch</title>
+<meta property="og:title" content="さわch">
+<meta property="og:description" content="ちゃー！！">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://los0t.github.io/try2/">
+<meta property="og:image" content="mark_chuui.png">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{height:100%;overflow:hidden}
+body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;background:#fff;color:#111}
 
+.pg{position:fixed;inset:0;display:flex;flex-direction:column;background:#fff;visibility:hidden;pointer-events:none;overflow:hidden}
+.pg.on{visibility:visible;pointer-events:auto}
+#pg-login,#pg-pin,#pg-pin-set,#pg-nick,#pg-admin-pin,#pg-admin-pin-set{align-items:center;justify-content:center;background:#f4f4f4}
+
+:root{--sur:#fff;--card:#f4f4f4;--bdr:#ccc;--txt:#111;--mut:#888;--grn:#1a7a1a;--red:#c0392b;--btn:#111;--btn-txt:#fff;}
+
+.auth-box{background:#fff;border:2px solid #111;border-radius:16px;padding:40px 28px;width:min(320px,92vw);display:flex;flex-direction:column;gap:16px;align-items:center;box-shadow:4px 4px 0 #111}
+.logo{font-family:'JetBrains Mono',monospace;font-size:26px;color:#111;font-weight:700;letter-spacing:-1px}
+.auth-desc{font-size:13px;color:#555;text-align:center;line-height:1.8}
+.auth-label{font-size:12px;color:#555;align-self:flex-start;font-weight:700}
+.big-input{width:100%;background:#f4f4f4;border:2px solid #111;border-radius:10px;color:#111;font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;padding:14px;text-align:center;outline:none;letter-spacing:4px}
+.big-input:focus{border-color:#111;background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,.08)}
+.big-input::placeholder{font-size:15px;letter-spacing:0;color:#aaa}
+.pin-input{font-size:36px;letter-spacing:8px;max-width:180px}
+.auth-btn{width:100%;background:#111;color:#fff;border:2px solid #111;border-radius:10px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:3px 3px 0 #555}
+.auth-btn:active{box-shadow:1px 1px 0 #555;transform:translate(2px,2px)}
+.skip-btn{background:none;border:none;color:#888;font-size:13px;cursor:pointer;font-family:inherit;text-decoration:underline;padding:4px}
+.auth-error{font-size:12px;color:var(--red);text-align:center;min-height:16px;font-weight:700}
+.nick-input{width:100%;background:#f4f4f4;border:2px solid #111;border-radius:10px;color:#111;font-family:inherit;font-size:18px;font-weight:700;padding:14px;text-align:center;outline:none}
+.nick-input:focus{background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,.08)}
+.nick-input::placeholder{font-size:14px;color:#aaa;font-weight:400}
+
+.hdr{height:52px;flex-shrink:0;background:#111;display:flex;align-items:center;padding:0 14px;gap:10px}
+.hdr-title{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:#fff}
+.hdr-sub{font-size:11px;color:#aaa}
+.hdr-badge{margin-left:auto;background:#fff;color:#111;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;flex-shrink:0;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hdr-back{background:none;border:1px solid #555;color:#ccc;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;font-family:inherit;flex-shrink:0}
+.hdr-thread-title{flex:1;font-size:14px;font-weight:700;color:#fff;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+
+.list-wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#f4f4f4}
+.th-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid #ddd;background:#fff;cursor:pointer;user-select:none}
+.th-item:active{background:#f4f4f4}
+.th-icon{width:42px;height:42px;border-radius:10px;background:#111;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.th-info{flex:1;min-width:0}
+.th-title{font-size:14px;font-weight:700;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.th-meta{font-size:11px;color:#888;margin-top:3px}
+.th-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.th-count{font-size:11px;color:#888;background:#f4f4f4;border:1px solid #ddd;padding:2px 8px;border-radius:10px}
+.th-arrow{color:#aaa;font-size:18px;font-weight:700}
+.list-empty{text-align:center;color:#888;font-size:13px;padding:60px 20px;line-height:2.2}
+.fab{position:absolute;bottom:24px;right:20px;width:56px;height:56px;border-radius:50%;background:#111;color:#fff;border:none;font-size:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:3px 3px 0 #555}
+.fab:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #555}
+
+.modal-wrap{position:absolute;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+.modal-wrap.on{display:flex}
+.modal{background:#fff;border:2px solid #111;border-radius:14px;padding:24px;width:100%;max-width:320px;display:flex;flex-direction:column;gap:14px;box-shadow:4px 4px 0 #111}
+.modal h3{font-size:15px;color:#111;font-weight:700}
+.modal-inp{width:100%;background:#f4f4f4;border:2px solid #111;border-radius:8px;color:#111;font-family:inherit;font-size:15px;padding:12px 14px;outline:none}
+.modal-inp:focus{background:#fff}
+.modal-inp::placeholder{color:#aaa}
+.modal-btns{display:flex;gap:10px}
+.m-cancel{flex:1;background:#fff;border:2px solid #111;color:#111;border-radius:8px;padding:12px;font-size:14px;cursor:pointer;font-family:inherit;font-weight:700}
+.m-ok{flex:2;background:#111;color:#fff;border:2px solid #111;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+
+.confirm-wrap{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:20px;z-index:999}
+.confirm-wrap.on{display:flex}
+.confirm-box{background:#fff;border:2px solid #111;border-radius:14px;padding:24px;width:100%;max-width:300px;display:flex;flex-direction:column;gap:16px;box-shadow:4px 4px 0 #111}
+.confirm-box p{font-size:14px;color:#111;line-height:1.6;white-space:pre-wrap}
+.confirm-btns{display:flex;gap:10px}
+.c-no{flex:1;background:#fff;border:2px solid #111;color:#111;border-radius:8px;padding:11px;font-size:14px;cursor:pointer;font-family:inherit;font-weight:700}
+.c-yes{flex:1;background:var(--red);color:#fff;border:2px solid var(--red);border-radius:8px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+
+.posts-wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0;background:#f4f4f4}
+.post{padding:12px 16px;border-bottom:1px solid #ddd;background:#fff;cursor:pointer;user-select:none}
+.post:active{background:#f4f4f4}
+.post.replying{background:#efefef;border-left:3px solid #111}
+.post-hdr{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.p-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;background:#111}
+.p-id{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#111}
+.p-num{font-size:11px;color:#888;background:#f4f4f4;padding:1px 6px;border-radius:4px}
+.p-hint{font-size:10px;color:#aaa;margin-left:2px}
+.p-time{font-size:11px;color:#999;margin-left:auto}
+.quote{background:#f4f4f4;border-left:3px solid #111;border-radius:0 6px 6px 0;padding:7px 10px;margin-bottom:7px}
+.q-user{font-family:'JetBrains Mono',monospace;font-size:11px;color:#555;font-weight:700;margin-bottom:2px}
+.q-text{font-size:12px;color:#666;line-height:1.5;word-break:break-word}
+.post-body{font-size:14px;line-height:1.8;color:#111;word-break:break-word;white-space:pre-wrap}
+.post-img{margin-top:8px;max-width:100%;max-height:260px;border-radius:8px;border:1px solid #ddd;object-fit:contain;display:block;background:#f4f4f4}
+.post-foot{display:flex;align-items:center;margin-top:10px}
+.like-btn{display:flex;align-items:center;gap:4px;background:#fff;border:1.5px solid #ccc;border-radius:20px;padding:4px 12px;font-size:13px;color:#888;cursor:pointer;font-family:inherit;user-select:none}
+.like-btn.on{background:#111;border-color:#111;color:#fff}
+
+.reply-bar{display:none;background:#111;padding:8px 14px;align-items:center;gap:10px;flex-shrink:0}
+.reply-bar.on{display:flex}
+.rb-body{flex:1;min-width:0}
+.rb-label{font-size:11px;color:#aaa;font-weight:700;margin-bottom:2px}
+.rb-preview{font-size:12px;color:#ddd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rb-x{background:none;border:1px solid #555;color:#ccc;border-radius:50%;width:24px;height:24px;font-size:14px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+
+.img-prev-wrap{display:none;padding:8px 14px 0;position:relative;width:fit-content;background:#fff}
+.img-prev-wrap.on{display:block}
+.img-prev{width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid #111;display:block}
+.img-prev-del{position:absolute;top:2px;right:-10px;background:#111;color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+.input-bar{display:flex;align-items:flex-end;gap:8px;padding:10px 14px 14px;background:#fff;border-top:2px solid #111;flex-shrink:0}
+#post-input{flex:1;background:#f4f4f4;border:2px solid #111;border-radius:12px;color:#111;font-family:inherit;font-size:15px;padding:10px 14px;outline:none;resize:none;min-height:42px;max-height:100px;line-height:1.5;-webkit-appearance:none}
+#post-input:focus{background:#fff}
+#post-input::placeholder{color:#aaa}
+.img-btn{width:42px;height:42px;border-radius:50%;background:#f4f4f4;border:2px solid #111;color:#111;font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.img-btn.on{background:#111;color:#fff}
+.send-btn{width:42px;height:42px;border-radius:50%;background:#111;color:#fff;border:2px solid #111;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.send-btn:active{transform:scale(.93)}
+
+/* 管理者 */
+.admin-tabs{display:flex;border-bottom:2px solid #111;background:#fff;flex-shrink:0}
+.admin-tab{flex:1;background:#fff;border:none;border-bottom:3px solid transparent;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;color:#888}
+.admin-tab.on{color:#111;border-bottom-color:#111}
+.admin-wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px;background:#f4f4f4}
+.admin-card{background:#fff;border:2px solid #111;border-radius:10px;padding:14px 16px;margin-bottom:10px;box-shadow:2px 2px 0 #aaa}
+.admin-card-id{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:#111;margin-bottom:8px}
+.admin-card-row{font-size:13px;color:#111;margin-bottom:4px;display:flex;gap:8px;align-items:flex-start}
+.admin-card-label{color:#888;flex-shrink:0;width:72px;font-size:12px}
+.admin-card-val{word-break:break-all}
+.admin-btn-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.admin-btn{border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700;border:2px solid #111}
+.admin-btn.black{background:#111;color:#fff}
+.admin-btn.white{background:#fff;color:#111}
+.admin-empty{text-align:center;color:#888;font-size:13px;padding:40px 20px}
+.admin-section-back{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #ddd;background:#fff;flex-shrink:0;font-weight:700;font-size:14px}
+.admin-section-back button{background:none;border:1px solid #ccc;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:inherit}
+
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:#ccc;border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- ページ1: ID入力 -->
+<div id="pg-login" class="pg on">
+  <div class="auth-box">
+    <div class="logo">さわch</div>
+    <p class="auth-desc">数字を入力してください<br>それがあなたのIDになります</p>
+    <input id="id-input" class="big-input" type="number" inputmode="numeric" placeholder="例: 1234" autocomplete="off">
+    <div class="auth-error" id="login-err"></div>
+    <button class="auth-btn" id="login-btn">次へ →</button>
+  </div>
+</div>
+
+<!-- ページ2: PIN設定（新規） -->
+<div id="pg-pin-set" class="pg">
+  <div class="auth-box">
+    <div class="logo">さわch</div>
+    <p class="auth-desc">新規登録：3桁のPINコードを設定してください<br>次回以降のログインに使います</p>
+    <div class="auth-label">PINコード（3桁）</div>
+    <input id="pin-set-input" class="big-input pin-input" type="number" inputmode="numeric" placeholder="●●●" maxlength="3" autocomplete="off">
+    <div class="auth-error" id="pin-set-err"></div>
+    <button class="auth-btn" id="pin-set-btn">設定する</button>
+  </div>
+</div>
+
+<!-- ページ3: PIN入力（既存） -->
+<div id="pg-pin" class="pg">
+  <div class="auth-box">
+    <div class="logo">さわch</div>
+    <p class="auth-desc" id="pin-desc">PINコードを入力してください</p>
+    <div class="auth-label">PINコード（3桁）</div>
+    <input id="pin-input" class="big-input pin-input" type="number" inputmode="numeric" placeholder="●●●" maxlength="3" autocomplete="off">
+    <div class="auth-error" id="pin-err"></div>
+    <button class="auth-btn" id="pin-btn">ログイン</button>
+  </div>
+</div>
+
+<!-- ページ4: ニックネーム設定 -->
+<div id="pg-nick" class="pg">
+  <div class="auth-box">
+    <div class="logo">さわch</div>
+    <p class="auth-desc">ニックネームを設定しますか？<br>スキップするとIDがそのまま名前になります</p>
+    <input id="nick-input" class="nick-input" type="text" placeholder="ニックネーム（任意）" maxlength="20" autocomplete="off">
+    <button class="auth-btn" id="nick-btn">設定して入室</button>
+    <button class="skip-btn" id="nick-skip">スキップ（IDのまま）</button>
+  </div>
+</div>
+
+<!-- ページ5: スレッド一覧 -->
+<div id="pg-list" class="pg">
+  <div class="hdr">
+    <div class="hdr-title">さわch</div>
+    <div class="hdr-sub" id="sync-lbl"></div>
+    <div class="hdr-badge" id="badge-list"></div>
+  </div>
+  <div class="list-wrap" id="thread-list">
+    <div class="list-empty">スレッドがありません<br>右下の ＋ から作成できます</div>
+  </div>
+  <button class="fab" id="fab">＋</button>
+  <div class="modal-wrap" id="modal-wrap">
+    <div class="modal">
+      <h3>📝 新しいスレッドを作る</h3>
+      <input class="modal-inp" id="thread-title-inp" placeholder="タイトルを入力..." maxlength="60">
+      <div class="modal-btns">
+        <button class="m-cancel" id="modal-cancel">キャンセル</button>
+        <button class="m-ok" id="modal-ok">作成する</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ページ6: スレッド内 -->
+<div id="pg-thread" class="pg">
+  <div class="hdr">
+    <button class="hdr-back" id="btn-back">← 一覧</button>
+    <div class="hdr-thread-title" id="thread-ttl"></div>
+    <div class="hdr-badge" id="badge-thread"></div>
+  </div>
+  <div class="posts-wrap" id="posts-area"></div>
+  <div class="reply-bar" id="reply-bar">
+    <div class="rb-body">
+      <div class="rb-label">↩ 返信中</div>
+      <div class="rb-preview" id="reply-prev"></div>
+    </div>
+    <button class="rb-x" id="reply-cancel">✕</button>
+  </div>
+  <div class="img-prev-wrap" id="img-prev-wrap">
+    <img class="img-prev" id="img-prev" src="" alt="">
+    <button class="img-prev-del" id="img-prev-del">✕</button>
+  </div>
+  <div class="input-bar">
+    <button class="img-btn" id="img-btn">🖼</button>
+    <input type="file" id="img-file" accept="image/*" style="display:none">
+    <textarea id="post-input" placeholder="投稿する… (投稿をタップで返信)" rows="1" maxlength="1000"></textarea>
+    <button class="send-btn" id="send-btn">➤</button>
+  </div>
+</div>
+
+<!-- ページ7: 管理者PIN設定（初回） -->
+<div id="pg-admin-pin-set" class="pg">
+  <div class="auth-box">
+    <div class="logo">さわch</div>
+    <p class="auth-desc">管理者PINを設定してください<br>（初回のみ・3桁の数字）</p>
+    <div class="auth-label">PINコード（3桁）</div>
+    <input id="admin-pin-set-input" class="big-input pin-input" type="number" inputmode="numeric" placeholder="●●●" maxlength="3" autocomplete="off">
+    <div class="auth-error" id="admin-pin-set-err"></div>
+    <button class="auth-btn" id="admin-pin-set-btn">設定する</button>
+    <button class="skip-btn" id="admin-pin-set-back">← 戻る</button>
+  </div>
+</div>
+
+<!-- ページ8: 管理者PIN入力 -->
+<div id="pg-admin-pin" class="pg">
+  <div class="auth-box">
+    <div class="logo">さわch</div>
+    <p class="auth-desc">管理者PINを入力してください</p>
+    <div class="auth-label">PINコード（3桁）</div>
+    <input id="admin-pin-input" class="big-input pin-input" type="number" inputmode="numeric" placeholder="●●●" maxlength="3" autocomplete="off">
+    <div class="auth-error" id="admin-pin-err"></div>
+    <button class="auth-btn" id="admin-pin-btn">ログイン</button>
+    <button class="skip-btn" id="admin-pin-back">← 戻る</button>
+  </div>
+</div>
+
+<!-- ページ9: 管理者ページ -->
+<div id="pg-admin" class="pg">
+  <div class="hdr">
+    <div class="hdr-title">さわch</div>
+    <span style="font-size:12px;color:#aaa">管理者</span>
+    <button class="hdr-back" style="margin-left:auto" id="admin-back">← 戻る</button>
+  </div>
+  <div class="admin-tabs">
+    <button class="admin-tab on" id="tab-accounts" onclick="switchTab('accounts')">アカウント</button>
+    <button class="admin-tab" id="tab-threads" onclick="switchTab('threads')">スレッド</button>
+  </div>
+  <div class="admin-wrap" id="admin-body"></div>
+</div>
+
+<!-- 確認ダイアログ -->
+<div class="confirm-wrap" id="confirm-wrap">
+  <div class="confirm-box">
+    <p id="confirm-msg"></p>
+    <div class="confirm-btns">
+      <button class="c-no" id="c-no">キャンセル</button>
+      <button class="c-yes" id="c-yes">削除する</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase,ref,push,onValue,remove,get,set,update }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const ADMIN_ID = '53649754';
+
+const db = getDatabase(initializeApp({
+  apiKey:"AIzaSyDl8UJ_ibhxGrtZ6vfyPit5S3_vACs371U",
+  authDomain:"onlychat-de190.firebaseapp.com",
+  databaseURL:"https://onlychat-de190-default-rtdb.firebaseio.com",
+  projectId:"onlychat-de190",
+  storageBucket:"onlychat-de190.firebasestorage.app",
+  messagingSenderId:"619416583908",
+  appId:"1:619416583908:web:ba5b8487baa5322fb2f6f1"
+}));
+
+// ── 状態
+let myId=null, myNick=null, curTid=null, replyTo=null, pendingImg=null;
+let pendingIdForReg=null;
+let adminTab='accounts';
+
+// ── 画像上限
+const IMG_LIMIT=5;
+const dayKey=()=>'sawach_img_'+new Date().toDateString();
+const getDayCount=()=>parseInt(localStorage.getItem(dayKey())||'0');
+const incDayCount=()=>localStorage.setItem(dayKey(),getDayCount()+1);
+
+// ── 画面切替
+function go(id){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+}
+
+// ── ユーティリティ
+const COLS=['#5b52e8','#e85290','#16a34a','#d97706','#0284c7','#9333ea','#0891b2','#dc2626'];
+const col=id=>COLS[String(id).split('').reduce((a,c)=>a+c.charCodeAt(0),0)%COLS.length];
+const fmt=ts=>{
+  if(!ts)return'';
+  const d=new Date(ts);
+  return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+};
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const displayName=()=>(myNick||'名無しさん')+'('+myId+')';
+
+// ── 確認ダイアログ
+let confirmCb=null;
+const showConfirm=(msg,cb)=>{
+  confirmCb=cb;
+  document.getElementById('confirm-msg').textContent=msg;
+  document.getElementById('confirm-wrap').classList.add('on');
+};
+document.getElementById('c-no').onclick=()=>{document.getElementById('confirm-wrap').classList.remove('on');confirmCb=null;};
+document.getElementById('c-yes').onclick=()=>{document.getElementById('confirm-wrap').classList.remove('on');if(confirmCb)confirmCb();confirmCb=null;};
+
+// ── 長押し
+function longPress(el,cb){
+  let t=null,moved=false;
+  el.addEventListener('touchstart',()=>{moved=false;t=setTimeout(()=>{if(!moved)cb();},600)},{passive:true});
+  el.addEventListener('touchend',()=>clearTimeout(t));
+  el.addEventListener('touchmove',()=>{moved=true;clearTimeout(t)},{passive:true});
+}
+
+// ── 画像圧縮
+function compress(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();r.onerror=rej;
+    r.onload=e=>{
+      const img=new Image();img.onerror=rej;
+      img.onload=()=>{
+        const MAX=600;let w=img.width,h=img.height;
+        if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+        if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
+        const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        res(cv.toDataURL('image/jpeg',0.65));
+      };
+      img.src=e.target.result;
+    };
+    r.readAsDataURL(file);
+  });
+}
+
+// ════════════════════════════════
+//  ログインフロー
+// ════════════════════════════════
+document.getElementById('id-input').addEventListener('keydown',e=>{if(e.key==='Enter')stepId();});
+document.getElementById('login-btn').onclick=stepId;
+
+async function stepId(){
+  const v=document.getElementById('id-input').value.trim();
+  document.getElementById('login-err').textContent='';
+  if(!v||isNaN(v)||Number(v)<=0){document.getElementById('login-err').textContent='正しい数字を入力してください';return;}
+
+  // 管理者ID
+  if(v===ADMIN_ID){
+    // FirebaseにPINが設定済みか確認
+    const snap=await get(ref(db,'admin/pin'));
+    if(snap.exists()){
+      // PIN入力へ
+      document.getElementById('admin-pin-input').value='';
+      document.getElementById('admin-pin-err').textContent='';
+      go('pg-admin-pin');
+      setTimeout(()=>document.getElementById('admin-pin-input').focus(),100);
+    } else {
+      // 初回：PIN設定へ
+      document.getElementById('admin-pin-set-input').value='';
+      document.getElementById('admin-pin-set-err').textContent='';
+      go('pg-admin-pin-set');
+      setTimeout(()=>document.getElementById('admin-pin-set-input').focus(),100);
+    }
+    return;
+  }
+
+  // 一般アカウント
+  const snap=await get(ref(db,`accounts/${v}`));
+  if(snap.exists()){
+    const acc=snap.val();
+    document.getElementById('pin-desc').textContent=`「${acc.nick||v}」としてログイン`;
+    pendingIdForReg=v;
+    document.getElementById('pin-input').value='';
+    document.getElementById('pin-err').textContent='';
+    go('pg-pin');
+    setTimeout(()=>document.getElementById('pin-input').focus(),100);
+  } else {
+    pendingIdForReg=v;
+    document.getElementById('pin-set-input').value='';
+    document.getElementById('pin-set-err').textContent='';
+    go('pg-pin-set');
+    setTimeout(()=>document.getElementById('pin-set-input').focus(),100);
+  }
+}
+
+// PIN設定（新規）
+document.getElementById('pin-set-input').addEventListener('keydown',e=>{if(e.key==='Enter')stepPinSet();});
+document.getElementById('pin-set-btn').onclick=stepPinSet;
+async function stepPinSet(){
+  const pin=document.getElementById('pin-set-input').value.trim();
+  document.getElementById('pin-set-err').textContent='';
+  if(!/^\d{3}$/.test(pin)){document.getElementById('pin-set-err').textContent='3桁の数字を入力してください';return;}
+  await set(ref(db,`accounts/${pendingIdForReg}`),{id:pendingIdForReg,pin,nick:'',createdAt:Date.now()});
+  document.getElementById('nick-input').value='';
+  go('pg-nick');
+  setTimeout(()=>document.getElementById('nick-input').focus(),100);
+}
+
+// PIN入力（既存）
+document.getElementById('pin-input').addEventListener('keydown',e=>{if(e.key==='Enter')stepPin();});
+document.getElementById('pin-btn').onclick=stepPin;
+async function stepPin(){
+  const pin=document.getElementById('pin-input').value.trim();
+  document.getElementById('pin-err').textContent='';
+  if(!/^\d{3}$/.test(pin)){document.getElementById('pin-err').textContent='3桁の数字を入力してください';return;}
+  const snap=await get(ref(db,`accounts/${pendingIdForReg}`));
+  if(!snap.exists()){document.getElementById('pin-err').textContent='アカウントが見つかりません';return;}
+  const acc=snap.val();
+  if(acc.pin!==pin){document.getElementById('pin-err').textContent='PINコードが違います';return;}
+  document.getElementById('nick-input').value=acc.nick||'';
+  go('pg-nick');
+  setTimeout(()=>document.getElementById('nick-input').focus(),100);
+}
+
+// ニックネーム設定
+document.getElementById('nick-btn').onclick=()=>stepNick(false);
+document.getElementById('nick-skip').onclick=()=>stepNick(true);
+document.getElementById('nick-input').addEventListener('keydown',e=>{if(e.key==='Enter')stepNick(false);});
+async function stepNick(skip){
+  const nick=skip?'':(document.getElementById('nick-input').value.trim());
+  await update(ref(db,`accounts/${pendingIdForReg}`),{nick});
+  myId=pendingIdForReg;
+  myNick=nick||null;
+  const newName=displayName();
+  // 過去の投稿・スレのニックネームを一括同期
+  try{
+    const threadsSnap=await get(ref(db,'threads'));
+    const threads=threadsSnap.val()||{};
+    const ups=[];
+    for(const tid of Object.keys(threads)){
+      const postsSnap=await get(ref(db,`posts/${tid}`));
+      const posts=postsSnap.val()||{};
+      for(const [pid,post] of Object.entries(posts)){
+        if(String(post.userId)===String(myId)) ups.push(update(ref(db,`posts/${tid}/${pid}`),{userNick:newName}));
+      }
+      if(String(threads[tid].createdBy)===String(myId)) ups.push(update(ref(db,`threads/${tid}`),{createdByNick:newName}));
+    }
+    await Promise.all(ups);
+  }catch(e){console.warn('同期エラー',e);}
+  document.getElementById('badge-list').textContent=newName;
+  document.getElementById('badge-thread').textContent=newName;
+  go('pg-list');
+  initList();
+}
+
+// ════════════════════════════════
+//  管理者ログイン
+// ════════════════════════════════
+
+// 初回PIN設定
+document.getElementById('admin-pin-set-input').addEventListener('keydown',e=>{if(e.key==='Enter')stepAdminPinSet();});
+document.getElementById('admin-pin-set-btn').onclick=stepAdminPinSet;
+document.getElementById('admin-pin-set-back').onclick=()=>{go('pg-login');document.getElementById('id-input').value='';};
+async function stepAdminPinSet(){
+  const pin=document.getElementById('admin-pin-set-input').value.trim();
+  document.getElementById('admin-pin-set-err').textContent='';
+  if(!/^\d{3}$/.test(pin)){document.getElementById('admin-pin-set-err').textContent='3桁の数字を入力してください';return;}
+  await set(ref(db,'admin/pin'),pin);
+  go('pg-admin');
+  loadAdmin();
+}
+
+// PIN入力
+document.getElementById('admin-pin-input').addEventListener('keydown',e=>{if(e.key==='Enter')stepAdminPin();});
+document.getElementById('admin-pin-btn').onclick=stepAdminPin;
+document.getElementById('admin-pin-back').onclick=()=>{go('pg-login');document.getElementById('id-input').value='';};
+async function stepAdminPin(){
+  const pin=document.getElementById('admin-pin-input').value.trim();
+  document.getElementById('admin-pin-err').textContent='';
+  if(!/^\d{3}$/.test(pin)){document.getElementById('admin-pin-err').textContent='3桁の数字を入力してください';return;}
+  const snap=await get(ref(db,'admin/pin'));
+  if(!snap.exists()||snap.val()!==pin){document.getElementById('admin-pin-err').textContent='PINが違います';return;}
+  go('pg-admin');
+  loadAdmin();
+}
+
+document.getElementById('admin-back').onclick=()=>{go('pg-login');document.getElementById('id-input').value='';};
+
+// ════════════════════════════════
+//  管理者ページ
+// ════════════════════════════════
+window.switchTab=function(tab){
+  adminTab=tab;
+  document.getElementById('tab-accounts').classList.toggle('on',tab==='accounts');
+  document.getElementById('tab-threads').classList.toggle('on',tab==='threads');
+  loadAdmin();
+};
+
+function loadAdmin(){
+  const el=document.getElementById('admin-body');
+  el.innerHTML='<div class="admin-empty">読み込み中...</div>';
+  if(adminTab==='accounts') loadAdminAccounts(el);
+  else loadAdminThreads(el);
+}
+
+async function loadAdminAccounts(el){
+  const snap=await get(ref(db,'accounts'));
+  const data=snap.val()||{};
+  const entries=Object.entries(data).sort((a,b)=>a[1].createdAt-b[1].createdAt);
+  if(!entries.length){el.innerHTML='<div class="admin-empty">アカウントがありません</div>';return;}
+  el.innerHTML='';
+  entries.forEach(([id,acc])=>{
+    const card=document.createElement('div');card.className='admin-card';
+    card.innerHTML=`
+      <div class="admin-card-id">${esc(id)}</div>
+      <div class="admin-card-row"><span class="admin-card-label">ニックネーム</span><span class="admin-card-val">${esc(acc.nick||'（未設定）')}</span></div>
+      <div class="admin-card-row"><span class="admin-card-label">PIN</span><span class="admin-card-val">${esc(acc.pin||'')}</span></div>
+      <div class="admin-card-row"><span class="admin-card-label">登録日時</span><span class="admin-card-val">${fmt(acc.createdAt)}</span></div>`;
+    const btnRow=document.createElement('div');btnRow.className='admin-btn-row';
+    const delBtn=document.createElement('button');
+    delBtn.className='admin-btn black';delBtn.textContent='アカウント削除';
+    delBtn.onclick=()=>showConfirm(`ID: ${id} を削除しますか？`,async()=>{
+      await remove(ref(db,`accounts/${id}`));
+      loadAdmin();
+    });
+    btnRow.appendChild(delBtn);
+    card.appendChild(btnRow);
+    el.appendChild(card);
+  });
+}
+
+async function loadAdminThreads(el){
+  const snap=await get(ref(db,'threads'));
+  const data=snap.val()||{};
+  const entries=Object.entries(data).sort((a,b)=>(b[1].lastActivity||0)-(a[1].lastActivity||0));
+  if(!entries.length){el.innerHTML='<div class="admin-empty">スレッドがありません</div>';return;}
+  el.innerHTML='';
+  entries.forEach(([tid,t])=>{
+    const card=document.createElement('div');card.className='admin-card';
+    card.innerHTML=`
+      <div class="admin-card-id">${esc(t.title)}</div>
+      <div class="admin-card-row"><span class="admin-card-label">作成者</span><span class="admin-card-val">${esc(String(t.createdByNick||t.createdBy||''))}</span></div>
+      <div class="admin-card-row"><span class="admin-card-label">投稿数</span><span class="admin-card-val">${t.postCount||0}件</span></div>
+      <div class="admin-card-row"><span class="admin-card-label">最終活動</span><span class="admin-card-val">${fmt(t.lastActivity)}</span></div>`;
+    const btnRow=document.createElement('div');btnRow.className='admin-btn-row';
+    const viewBtn=document.createElement('button');
+    viewBtn.className='admin-btn white';viewBtn.textContent='投稿を管理';
+    viewBtn.onclick=()=>loadAdminPosts(el,tid,t.title);
+    const delBtn=document.createElement('button');
+    delBtn.className='admin-btn black';delBtn.textContent='スレッド削除';
+    delBtn.onclick=()=>showConfirm(`「${t.title}」を削除しますか？\n（投稿もすべて削除されます）`,async()=>{
+      await remove(ref(db,`threads/${tid}`));
+      await remove(ref(db,`posts/${tid}`));
+      loadAdmin();
+    });
+    btnRow.appendChild(viewBtn);
+    btnRow.appendChild(delBtn);
+    card.appendChild(btnRow);
+    el.appendChild(card);
+  });
+}
+
+async function loadAdminPosts(el,tid,title){
+  el.innerHTML='<div class="admin-empty">読み込み中...</div>';
+  const snap=await get(ref(db,`posts/${tid}`));
+  const data=snap.val()||{};
+  const entries=Object.entries(data).sort((a,b)=>(a[1].ts||0)-(b[1].ts||0));
+
+  // 戻るヘッダー
+  const backRow=document.createElement('div');backRow.className='admin-section-back';
+  const backBtn=document.createElement('button');backBtn.textContent='← 戻る';
+  backBtn.onclick=()=>loadAdminThreads(el);
+  backRow.appendChild(backBtn);
+  backRow.appendChild(document.createTextNode(' ' + title + ' の投稿'));
+
+  el.innerHTML='';
+  el.appendChild(backRow);
+
+  if(!entries.length){
+    const emp=document.createElement('div');emp.className='admin-empty';emp.textContent='投稿がありません';
+    el.appendChild(emp);return;
+  }
+
+  entries.forEach(([pid,post],i)=>{
+    const card=document.createElement('div');card.className='admin-card';
+    const preview=post.text?(post.text.length>80?post.text.slice(0,80)+'…':post.text):'（画像投稿）';
+    card.innerHTML=`
+      <div class="admin-card-row"><span class="admin-card-label">No.${i+1}</span><span class="admin-card-val" style="font-weight:700">${esc(post.userNick||post.userId)}</span></div>
+      <div class="admin-card-row"><span class="admin-card-label">内容</span><span class="admin-card-val">${esc(preview)}</span></div>
+      <div class="admin-card-row"><span class="admin-card-label">日時</span><span class="admin-card-val">${fmt(post.ts)}</span></div>`;
+    const btnRow=document.createElement('div');btnRow.className='admin-btn-row';
+    const delBtn=document.createElement('button');
+    delBtn.className='admin-btn black';delBtn.textContent='投稿削除';
+    delBtn.onclick=()=>showConfirm('この投稿を削除しますか？',async()=>{
+      await remove(ref(db,`posts/${tid}/${pid}`));
+      const tsnap=await get(ref(db,`threads/${tid}`));
+      if(tsnap.exists()) await update(ref(db,`threads/${tid}`),{postCount:Math.max(0,(tsnap.val().postCount||1)-1)});
+      loadAdminPosts(el,tid,title);
+    });
+    btnRow.appendChild(delBtn);
+    card.appendChild(btnRow);
+    el.appendChild(card);
+  });
+}
+
+// ════════════════════════════════
+//  スレッド一覧
+// ════════════════════════════════
+function initList(){
+  document.getElementById('sync-lbl').textContent='✅ 同期中';
+  onValue(ref(db,'threads'),snap=>{
+    const data=snap.val()||{};
+    const now=Date.now(),week=7*24*60*60*1000;
+    Object.entries(data).forEach(([tid,t])=>{
+      if(now-(t.lastActivity||t.createdAt||0)>week){
+        remove(ref(db,`threads/${tid}`));remove(ref(db,`posts/${tid}`));delete data[tid];
+      }
+    });
+    renderList(data);
+  });
+}
+
+function renderList(data){
+  const el=document.getElementById('thread-list');
+  const entries=Object.entries(data).sort((a,b)=>(b[1].lastActivity||0)-(a[1].lastActivity||0));
+  if(!entries.length){el.innerHTML='<div class="list-empty">スレッドがありません<br>右下の ＋ から作成できます</div>';return;}
+  el.innerHTML='';
+  const icons=['💬','📢','🔥','✨','📝','🎯','💡','🌟'];
+  entries.forEach(([tid,t])=>{
+    const d=document.createElement('div');d.className='th-item';
+    const ic=icons[String(tid).split('').reduce((a,c)=>a+c.charCodeAt(0),0)%icons.length];
+    d.innerHTML=`
+      <div class="th-icon">${ic}</div>
+      <div class="th-info">
+        <div class="th-title">${esc(t.title)}</div>
+        <div class="th-meta">${fmt(t.createdAt)} · by ${esc(String(t.createdByNick||t.createdBy||''))}</div>
+      </div>
+      <div class="th-right"><div class="th-count">${t.postCount||0}件</div><div class="th-arrow">›</div></div>`;
+    d.onclick=()=>enterThread(tid,t.title);
+    if(String(t.createdBy)===String(myId)){
+      longPress(d,()=>showConfirm(`「${t.title}」を削除しますか？\n（投稿もすべて削除されます）`,async()=>{
+        await remove(ref(db,`threads/${tid}`));await remove(ref(db,`posts/${tid}`));
+      }));
+    }
+    el.appendChild(d);
+  });
+}
+
+document.getElementById('fab').onclick=()=>{
+  document.getElementById('modal-wrap').classList.add('on');
+  setTimeout(()=>document.getElementById('thread-title-inp').focus(),100);
+};
+document.getElementById('modal-cancel').onclick=closeModal;
+document.getElementById('modal-wrap').onclick=e=>{if(e.target===document.getElementById('modal-wrap'))closeModal();};
+document.getElementById('thread-title-inp').addEventListener('keydown',e=>{if(e.key==='Enter')doCreate();});
+document.getElementById('modal-ok').onclick=doCreate;
+function closeModal(){document.getElementById('modal-wrap').classList.remove('on');document.getElementById('thread-title-inp').value='';}
+async function doCreate(){
+  const title=document.getElementById('thread-title-inp').value.trim();
+  if(!title){alert('タイトルを入力してください');return;}
+  const now=Date.now();
+  await push(ref(db,'threads'),{title,createdBy:myId,createdByNick:displayName(),createdAt:now,lastActivity:now,postCount:0});
+  closeModal();
+}
+
+// ════════════════════════════════
+//  スレッド内
+// ════════════════════════════════
+function enterThread(tid,title){
+  curTid=tid;replyTo=null;pendingImg=null;
+  document.getElementById('thread-ttl').textContent=title;
+  document.getElementById('reply-bar').classList.remove('on');
+  document.getElementById('img-prev-wrap').classList.remove('on');
+  document.getElementById('img-btn').classList.remove('on');
+  document.getElementById('post-input').value='';
+  document.getElementById('posts-area').innerHTML='<div class="list-empty">読み込み中...</div>';
+  go('pg-thread');
+  onValue(ref(db,`posts/${tid}`),snap=>{
+    if(curTid!==tid)return;
+    renderPosts(snap.val()||{});
+  });
+}
+
+document.getElementById('btn-back').onclick=()=>{curTid=null;replyTo=null;pendingImg=null;go('pg-list');};
+
+function renderPosts(data){
+  const area=document.getElementById('posts-area');
+  const entries=Object.entries(data).sort((a,b)=>(a[1].ts||0)-(b[1].ts||0));
+  const atBot=area.scrollHeight-area.scrollTop-area.clientHeight<100;
+  if(!entries.length){area.innerHTML='<div class="list-empty">まだ投稿はありません<br>下の入力欄から投稿できます</div>';return;}
+  area.innerHTML='';
+  entries.forEach(([pid,post],i)=>area.appendChild(mkPost(pid,post,i+1,data)));
+  if(atBot)area.scrollTop=area.scrollHeight;
+  if(replyTo){const el=document.getElementById('p-'+replyTo.pid);if(el)el.classList.add('replying');}
+}
+
+function mkPost(pid,post,num,all){
+  const div=document.createElement('div');div.className='post';div.id='p-'+pid;
+  const c=col(post.userId),isMe=String(post.userId)===String(myId);
+  const name=post.userNick||post.userId;
+  const hdr=document.createElement('div');hdr.className='post-hdr';
+  hdr.innerHTML=`
+    <div class="p-av" style="background:${c}">${String(name).slice(0,3)}</div>
+    <span class="p-id">${esc(name)}</span>
+    <span class="p-num">No.${num}</span>
+    ${isMe?'<span class="p-hint">（長押しで削除）</span>':''}
+    <span class="p-time">${fmt(post.ts)}</span>`;
+  div.appendChild(hdr);
+  if(post.replyTo&&all[post.replyTo]){
+    const o=all[post.replyTo];
+    const oname=o.userNick||o.userId;
+    const prev=o.text?(o.text.length>60?o.text.slice(0,60)+'…':o.text):'（画像）';
+    const q=document.createElement('div');q.className='quote';
+    q.innerHTML=`<div class="q-user">${esc(oname)} より</div><div class="q-text">${esc(prev)}</div>`;
+    div.appendChild(q);
+  }
+  if(post.text){const b=document.createElement('div');b.className='post-body';b.textContent=post.text;div.appendChild(b);}
+  if(post.imageData){
+    const img=document.createElement('img');img.className='post-img';img.src=post.imageData;img.alt='';
+    img.onclick=e=>e.stopPropagation();div.appendChild(img);
+  }
+  const likes=post.likes||{};const liked=!!likes[myId];
+  const foot=document.createElement('div');foot.className='post-foot';
+  const lb=document.createElement('button');lb.className='like-btn'+(liked?' on':'');
+  lb.innerHTML=`<span>${liked?'❤️':'🤍'}</span><span style="margin-left:2px;font-weight:700">${Object.keys(likes).length||''}</span>`;
+  lb.onclick=async e=>{
+    e.stopPropagation();
+    if(liked)await remove(ref(db,`posts/${curTid}/${pid}/likes/${myId}`));
+    else await update(ref(db,`posts/${curTid}/${pid}/likes`),{[myId]:true});
+  };
+  foot.appendChild(lb);div.appendChild(foot);
+  div.onclick=()=>setReply(pid,name,post.text||'（画像）');
+  if(isMe){
+    longPress(div,()=>showConfirm('この投稿を削除しますか？',async()=>{
+      await remove(ref(db,`posts/${curTid}/${pid}`));
+      const snap=await get(ref(db,`threads/${curTid}`));
+      if(snap.exists())await update(ref(db,`threads/${curTid}`),{postCount:Math.max(0,(snap.val().postCount||1)-1)});
+    }));
+  }
+  return div;
+}
+
+function setReply(pid,name,text){
+  replyTo={pid,name,text};
+  document.getElementById('reply-prev').textContent=`${name}：${text.length>40?text.slice(0,40)+'…':text}`;
+  document.getElementById('reply-bar').classList.add('on');
+  document.querySelectorAll('.post').forEach(e=>e.classList.remove('replying'));
+  const t=document.getElementById('p-'+pid);if(t)t.classList.add('replying');
+  document.getElementById('post-input').focus();
+}
+document.getElementById('reply-cancel').onclick=()=>{
+  replyTo=null;document.getElementById('reply-bar').classList.remove('on');
+  document.querySelectorAll('.post').forEach(e=>e.classList.remove('replying'));
+};
+
+document.getElementById('img-btn').onclick=()=>{
+  if(getDayCount()>=IMG_LIMIT){alert(`画像は1日${IMG_LIMIT}枚まで`);return;}
+  document.getElementById('img-file').click();
+};
+document.getElementById('img-file').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;e.target.value='';
+  try{
+    pendingImg=await compress(f);
+    document.getElementById('img-prev').src=pendingImg;
+    document.getElementById('img-prev-wrap').classList.add('on');
+    document.getElementById('img-btn').classList.add('on');
+  }catch{alert('画像の読み込みに失敗しました');}
+};
+document.getElementById('img-prev-del').onclick=()=>{
+  pendingImg=null;
+  document.getElementById('img-prev-wrap').classList.remove('on');
+  document.getElementById('img-btn').classList.remove('on');
+};
+
+document.getElementById('post-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doPost();}
+});
+document.getElementById('post-input').addEventListener('input',function(){
+  this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px';
+});
+document.getElementById('send-btn').onclick=doPost;
+
+async function doPost(){
+  const inp=document.getElementById('post-input');
+  const text=inp.value.trim();
+  if(!text&&!pendingImg)return;
+  if(!curTid)return;
+  if(pendingImg&&getDayCount()>=IMG_LIMIT){alert(`画像は1日${IMG_LIMIT}枚まで`);return;}
+  inp.value='';inp.style.height='auto';
+  const now=Date.now();
+  const data={userId:myId,userNick:displayName(),text:text||'',ts:now};
+  if(replyTo)data.replyTo=replyTo.pid;
+  if(pendingImg){
+    data.imageData=pendingImg;incDayCount();pendingImg=null;
+    document.getElementById('img-prev-wrap').classList.remove('on');
+    document.getElementById('img-btn').classList.remove('on');
+  }
+  await push(ref(db,`posts/${curTid}`),data);
+  const snap=await get(ref(db,`threads/${curTid}`));
+  if(snap.exists())await update(ref(db,`threads/${curTid}`),{lastActivity:now,postCount:(snap.val().postCount||0)+1});
+  replyTo=null;
+  document.getElementById('reply-bar').classList.remove('on');
+  document.querySelectorAll('.post').forEach(e=>e.classList.remove('replying'));
+}
+</script>
+</body>
+</html>
