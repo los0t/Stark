@@ -17,25 +17,28 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
 
 .pg{position:fixed;inset:0;display:flex;flex-direction:column;background:#fff;visibility:hidden;pointer-events:none;overflow:hidden}
 .pg.on{visibility:visible;pointer-events:auto}
-#pg-login,#pg-pin,#pg-pin-set,#pg-nick,#pg-admin-pin,#pg-admin-pin-set{align-items:center;justify-content:center;background:#f4f4f4}
+#pg-start,#pg-login,#pg-register,#pg-reset,#pg-profile-set,#pg-admin-pin,#pg-admin-pin-set{align-items:center;justify-content:center;background:#f4f4f4}
 
-:root{--sur:#fff;--card:#f4f4f4;--bdr:#ccc;--txt:#111;--mut:#888;--grn:#1a7a1a;--red:#c0392b;--btn:#111;--btn-txt:#fff;}
+:root{--red:#c0392b;}
 
-.auth-box{background:#fff;border:2px solid #111;border-radius:16px;padding:40px 28px;width:min(320px,92vw);display:flex;flex-direction:column;gap:16px;align-items:center;box-shadow:4px 4px 0 #111}
+.auth-box{background:#fff;border:2px solid #111;border-radius:16px;padding:36px 28px;width:min(340px,92vw);display:flex;flex-direction:column;gap:14px;align-items:center;box-shadow:4px 4px 0 #111}
 .logo{font-family:'JetBrains Mono',monospace;font-size:26px;color:#111;font-weight:700;letter-spacing:-1px}
 .auth-desc{font-size:13px;color:#555;text-align:center;line-height:1.8}
-.auth-label{font-size:12px;color:#555;align-self:flex-start;font-weight:700}
-.big-input{width:100%;background:#f4f4f4;border:2px solid #111;border-radius:10px;color:#111;font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:700;padding:14px;text-align:center;outline:none;letter-spacing:4px}
-.big-input:focus{border-color:#111;background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,.08)}
-.big-input::placeholder{font-size:15px;letter-spacing:0;color:#aaa}
-.pin-input{font-size:36px;letter-spacing:8px;max-width:180px}
-.auth-btn{width:100%;background:#111;color:#fff;border:2px solid #111;border-radius:10px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:3px 3px 0 #555}
+.auth-label{font-size:12px;color:#555;align-self:flex-start;font-weight:700;margin-bottom:-6px}
+.auth-input{width:100%;background:#f4f4f4;border:2px solid #111;border-radius:10px;color:#111;font-family:inherit;font-size:16px;padding:12px 14px;outline:none}
+.auth-input:focus{background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,.08)}
+.auth-input::placeholder{color:#aaa}
+.pin-wrap{width:100%;background:#f4f4f4;border:2px solid #111;border-radius:10px;color:#111;font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:700;padding:12px;text-align:center;outline:none;letter-spacing:6px}
+.pin-wrap:focus{background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,.08)}
+.pin-wrap::placeholder{font-size:18px;letter-spacing:0;color:#aaa}
+.auth-btn{width:100%;background:#111;color:#fff;border:2px solid #111;border-radius:10px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:3px 3px 0 #555}
 .auth-btn:active{box-shadow:1px 1px 0 #555;transform:translate(2px,2px)}
-.skip-btn{background:none;border:none;color:#888;font-size:13px;cursor:pointer;font-family:inherit;text-decoration:underline;padding:4px}
-.auth-error{font-size:12px;color:var(--red);text-align:center;min-height:16px;font-weight:700}
-.nick-input{width:100%;background:#f4f4f4;border:2px solid #111;border-radius:10px;color:#111;font-family:inherit;font-size:18px;font-weight:700;padding:14px;text-align:center;outline:none}
-.nick-input:focus{background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,.08)}
-.nick-input::placeholder{font-size:14px;color:#aaa;font-weight:400}
+.auth-btn.white{background:#fff;color:#111}
+.auth-link{background:none;border:none;color:#555;font-size:13px;cursor:pointer;font-family:inherit;text-decoration:underline;padding:2px}
+.auth-error{font-size:12px;color:var(--red);text-align:center;min-height:16px;font-weight:700;width:100%}
+.auth-success{font-size:12px;color:#1a7a1a;text-align:center;min-height:16px;font-weight:700;width:100%}
+.auth-divider{width:100%;border:none;border-top:1px solid #ddd;margin:2px 0}
+.id-hint{font-size:11px;color:#888;align-self:flex-start;margin-top:-8px}
 
 .hdr{height:52px;flex-shrink:0;background:#111;display:flex;align-items:center;padding:0 14px;gap:10px}
 .hdr-title{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:#fff}
@@ -117,13 +120,12 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
 .send-btn{width:42px;height:42px;border-radius:50%;background:#111;color:#fff;border:2px solid #111;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .send-btn:active{transform:scale(.93)}
 
-/* 管理者 */
 .admin-tabs{display:flex;border-bottom:2px solid #111;background:#fff;flex-shrink:0}
 .admin-tab{flex:1;background:#fff;border:none;border-bottom:3px solid transparent;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;color:#888}
 .admin-tab.on{color:#111;border-bottom-color:#111}
 .admin-wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px;background:#f4f4f4}
 .admin-card{background:#fff;border:2px solid #111;border-radius:10px;padding:14px 16px;margin-bottom:10px;box-shadow:2px 2px 0 #aaa}
-.admin-card-id{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:#111;margin-bottom:8px}
+.admin-card-id{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:#111;margin-bottom:8px;word-break:break-all}
 .admin-card-row{font-size:13px;color:#111;margin-bottom:4px;display:flex;gap:8px;align-items:flex-start}
 .admin-card-label{color:#888;flex-shrink:0;width:72px;font-size:12px}
 .admin-card-val{word-break:break-all}
@@ -132,7 +134,7 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
 .admin-btn.black{background:#111;color:#fff}
 .admin-btn.white{background:#fff;color:#111}
 .admin-empty{text-align:center;color:#888;font-size:13px;padding:40px 20px}
-.admin-section-back{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #ddd;background:#fff;flex-shrink:0;font-weight:700;font-size:14px}
+.admin-section-back{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #ddd;background:#fff;font-weight:700;font-size:14px}
 .admin-section-back button{background:none;border:1px solid #ccc;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:inherit}
 
 ::-webkit-scrollbar{width:3px}
@@ -141,53 +143,81 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
 </head>
 <body>
 
-<!-- ページ1: ID入力 -->
-<div id="pg-login" class="pg on">
+<!-- ページ1: スタート（ログイン/新規登録選択） -->
+<div id="pg-start" class="pg on">
   <div class="auth-box">
     <div class="logo">Ecstasy</div>
-    <p class="auth-desc">数字を入力してください<br>それがあなたのIDになります</p>
-    <input id="id-input" class="big-input" type="number" inputmode="numeric" placeholder="例: 1234" autocomplete="off">
+    <p class="auth-desc">ようこそ</p>
+    <button class="auth-btn" id="btn-go-login">ログイン</button>
+    <button class="auth-btn white" id="btn-go-register">新規登録</button>
+  </div>
+</div>
+
+<!-- ページ2: ログイン -->
+<div id="pg-login" class="pg">
+  <div class="auth-box">
+    <div class="logo">Ecstasy</div>
+    <p class="auth-desc">メールアドレスとパスワードでログイン</p>
+    <div class="auth-label">メールアドレス</div>
+    <input id="login-email" class="auth-input" type="email" inputmode="email" placeholder="example@mail.com" autocomplete="email">
+    <div class="auth-label">パスワード</div>
+    <input id="login-pw" class="auth-input" type="password" placeholder="パスワード" autocomplete="current-password">
     <div class="auth-error" id="login-err"></div>
-    <button class="auth-btn" id="login-btn">次へ →</button>
+    <button class="auth-btn" id="login-btn">ログイン</button>
+    <hr class="auth-divider">
+    <button class="auth-link" id="btn-go-reset">パスワードを忘れた方</button>
+    <button class="auth-link" id="btn-login-to-register">新規登録はこちら</button>
+    <button class="auth-link" id="btn-login-back">← 戻る</button>
   </div>
 </div>
 
-<!-- ページ2: PIN設定（新規） -->
-<div id="pg-pin-set" class="pg">
+<!-- ページ3: 新規登録 -->
+<div id="pg-register" class="pg">
   <div class="auth-box">
     <div class="logo">Ecstasy</div>
-    <p class="auth-desc">新規登録：3桁のPINコードを設定してください<br>次回以降のログインに使います</p>
-    <div class="auth-label">PINコード（3桁）</div>
-    <input id="pin-set-input" class="big-input pin-input" type="number" inputmode="numeric" placeholder="●●●" maxlength="3" autocomplete="off">
-    <div class="auth-error" id="pin-set-err"></div>
-    <button class="auth-btn" id="pin-set-btn">設定する</button>
+    <p class="auth-desc">アカウントを作成</p>
+    <div class="auth-label">メールアドレス</div>
+    <input id="reg-email" class="auth-input" type="email" inputmode="email" placeholder="example@mail.com" autocomplete="email">
+    <div class="auth-label">パスワード（6文字以上）</div>
+    <input id="reg-pw" class="auth-input" type="password" placeholder="パスワード" autocomplete="new-password">
+    <div class="auth-label">パスワード確認</div>
+    <input id="reg-pw2" class="auth-input" type="password" placeholder="パスワード（再入力）" autocomplete="new-password">
+    <div class="auth-error" id="reg-err"></div>
+    <button class="auth-btn" id="reg-btn">次へ →</button>
+    <button class="auth-link" id="btn-register-back">← 戻る</button>
   </div>
 </div>
 
-<!-- ページ3: PIN入力（既存） -->
-<div id="pg-pin" class="pg">
+<!-- ページ4: パスワードリセット -->
+<div id="pg-reset" class="pg">
   <div class="auth-box">
     <div class="logo">Ecstasy</div>
-    <p class="auth-desc" id="pin-desc">PINコードを入力してください</p>
-    <div class="auth-label">PINコード（3桁）</div>
-    <input id="pin-input" class="big-input pin-input" type="number" inputmode="numeric" placeholder="●●●" maxlength="3" autocomplete="off">
-    <div class="auth-error" id="pin-err"></div>
-    <button class="auth-btn" id="pin-btn">ログイン</button>
+    <p class="auth-desc">登録済みのメールアドレスを入力してください<br>リセット用のメールを送信します</p>
+    <div class="auth-label">メールアドレス</div>
+    <input id="reset-email" class="auth-input" type="email" inputmode="email" placeholder="example@mail.com">
+    <div class="auth-error" id="reset-err"></div>
+    <div class="auth-success" id="reset-ok"></div>
+    <button class="auth-btn" id="reset-btn">送信する</button>
+    <button class="auth-link" id="btn-reset-back">← 戻る</button>
   </div>
 </div>
 
-<!-- ページ4: ニックネーム設定 -->
-<div id="pg-nick" class="pg">
+<!-- ページ5: プロフィール設定（新規登録後） -->
+<div id="pg-profile-set" class="pg">
   <div class="auth-box">
     <div class="logo">Ecstasy</div>
-    <p class="auth-desc">ニックネームを設定しますか？<br>スキップするとIDがそのまま名前になります</p>
-    <input id="nick-input" class="nick-input" type="text" placeholder="ニックネーム（任意）" maxlength="20" autocomplete="off">
-    <button class="auth-btn" id="nick-btn">設定して入室</button>
-    <button class="skip-btn" id="nick-skip">スキップ（IDのまま）</button>
+    <p class="auth-desc">プロフィールを設定してください</p>
+    <div class="auth-label">アカウントID（必須）</div>
+    <input id="set-accountid" class="auth-input" type="text" placeholder="例: saji_123" autocomplete="off" maxlength="20">
+    <p class="id-hint">英数字・アンダーバー(_)・ドット(.)のみ使用可</p>
+    <div class="auth-label">ニックネーム（任意）</div>
+    <input id="set-nick" class="auth-input" type="text" placeholder="例: さじ" autocomplete="off" maxlength="20">
+    <div class="auth-error" id="profile-err"></div>
+    <button class="auth-btn" id="profile-set-btn">Ecstasyをはじめる</button>
   </div>
 </div>
 
-<!-- ページ5: スレッド一覧 -->
+<!-- ページ6: スレッド一覧 -->
 <div id="pg-list" class="pg">
   <div class="hdr">
     <div class="hdr-title">Ecstasy</div>
@@ -210,7 +240,7 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
   </div>
 </div>
 
-<!-- ページ6: スレッド内 -->
+<!-- ページ7: スレッド内 -->
 <div id="pg-thread" class="pg">
   <div class="hdr">
     <button class="hdr-back" id="btn-back">← 一覧</button>
@@ -237,33 +267,33 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
   </div>
 </div>
 
-<!-- ページ7: 管理者PIN設定（初回） -->
+<!-- ページ8: 管理者PIN設定（初回） -->
 <div id="pg-admin-pin-set" class="pg">
   <div class="auth-box">
     <div class="logo">Ecstasy</div>
     <p class="auth-desc">管理者PINを設定してください<br>（初回のみ・3桁の数字）</p>
     <div class="auth-label">PINコード（3桁）</div>
-    <input id="admin-pin-set-input" class="big-input pin-input" type="number" inputmode="numeric" placeholder="●●●" maxlength="3" autocomplete="off">
+    <input id="admin-pin-set-input" class="pin-wrap" type="number" inputmode="numeric" placeholder="●●●" maxlength="3" autocomplete="off">
     <div class="auth-error" id="admin-pin-set-err"></div>
     <button class="auth-btn" id="admin-pin-set-btn">設定する</button>
-    <button class="skip-btn" id="admin-pin-set-back">← 戻る</button>
+    <button class="auth-link" id="admin-pin-set-back">← 戻る</button>
   </div>
 </div>
 
-<!-- ページ8: 管理者PIN入力 -->
+<!-- ページ9: 管理者PIN入力 -->
 <div id="pg-admin-pin" class="pg">
   <div class="auth-box">
     <div class="logo">Ecstasy</div>
     <p class="auth-desc">管理者PINを入力してください</p>
     <div class="auth-label">PINコード（3桁）</div>
-    <input id="admin-pin-input" class="big-input pin-input" type="number" inputmode="numeric" placeholder="●●●" maxlength="3" autocomplete="off">
+    <input id="admin-pin-input" class="pin-wrap" type="number" inputmode="numeric" placeholder="●●●" maxlength="3" autocomplete="off">
     <div class="auth-error" id="admin-pin-err"></div>
     <button class="auth-btn" id="admin-pin-btn">ログイン</button>
-    <button class="skip-btn" id="admin-pin-back">← 戻る</button>
+    <button class="auth-link" id="admin-pin-back">← 戻る</button>
   </div>
 </div>
 
-<!-- ページ9: 管理者ページ -->
+<!-- ページ10: 管理者ページ -->
 <div id="pg-admin" class="pg">
   <div class="hdr">
     <div class="hdr-title">Ecstasy</div>
@@ -290,12 +320,16 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  sendPasswordResetEmail, onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getDatabase,ref,push,onValue,remove,get,set,update }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-const ADMIN_ID = '53649754';
+const ADMIN_EMAIL = ''; // ← 管理者メールアドレスを後で設定
 
-const db = getDatabase(initializeApp({
+const fbApp = initializeApp({
   apiKey:"AIzaSyDl8UJ_ibhxGrtZ6vfyPit5S3_vACs371U",
   authDomain:"onlychat-de190.firebaseapp.com",
   databaseURL:"https://onlychat-de190-default-rtdb.firebaseio.com",
@@ -303,16 +337,19 @@ const db = getDatabase(initializeApp({
   storageBucket:"onlychat-de190.firebasestorage.app",
   messagingSenderId:"619416583908",
   appId:"1:619416583908:web:ba5b8487baa5322fb2f6f1"
-}));
+});
+const auth = getAuth(fbApp);
+const db = getDatabase(fbApp);
 
 // ── 状態
-let myId=null, myNick=null, curTid=null, replyTo=null, pendingImg=null;
-let pendingIdForReg=null;
+let myUid=null, myAccountId=null, myNick=null;
+let curTid=null, replyTo=null, pendingImg=null;
 let adminTab='accounts';
+let isNewUser=false; // 新規登録フラグ
 
 // ── 画像上限
 const IMG_LIMIT=5;
-const dayKey=()=>'sawach_img_'+new Date().toDateString();
+const dayKey=()=>'ecstasy_img_'+new Date().toDateString();
 const getDayCount=()=>parseInt(localStorage.getItem(dayKey())||'0');
 const incDayCount=()=>localStorage.setItem(dayKey(),getDayCount()+1);
 
@@ -331,15 +368,28 @@ const fmt=ts=>{
   return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 };
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const displayName=()=>(myNick||'名無しさん')+'('+myId+')';
+const displayName=()=>myNick?`${myNick}(@${myAccountId})`:`@${myAccountId}`;
+
+// アカウントIDのバリデーション
+const validAccountId=v=>/^[a-zA-Z0-9._]+$/.test(v)&&v.length>=3;
+
+// Firebaseエラーメッセージを日本語に
+function fbErrMsg(code){
+  const map={
+    'auth/email-already-in-use':'このメールアドレスは既に使われています',
+    'auth/invalid-email':'メールアドレスの形式が正しくありません',
+    'auth/weak-password':'パスワードは6文字以上にしてください',
+    'auth/user-not-found':'このメールアドレスは登録されていません',
+    'auth/wrong-password':'パスワードが違います',
+    'auth/invalid-credential':'メールアドレスまたはパスワードが違います',
+    'auth/too-many-requests':'試行回数が多すぎます。しばらくお待ちください',
+  };
+  return map[code]||'エラーが発生しました';
+}
 
 // ── 確認ダイアログ
 let confirmCb=null;
-const showConfirm=(msg,cb)=>{
-  confirmCb=cb;
-  document.getElementById('confirm-msg').textContent=msg;
-  document.getElementById('confirm-wrap').classList.add('on');
-};
+const showConfirm=(msg,cb)=>{confirmCb=cb;document.getElementById('confirm-msg').textContent=msg;document.getElementById('confirm-wrap').classList.add('on');};
 document.getElementById('c-no').onclick=()=>{document.getElementById('confirm-wrap').classList.remove('on');confirmCb=null;};
 document.getElementById('c-yes').onclick=()=>{document.getElementById('confirm-wrap').classList.remove('on');if(confirmCb)confirmCb();confirmCb=null;};
 
@@ -372,111 +422,152 @@ function compress(file){
 }
 
 // ════════════════════════════════
-//  ログインフロー
+//  Auth状態監視（セッション復元）
 // ════════════════════════════════
-document.getElementById('id-input').addEventListener('keydown',e=>{if(e.key==='Enter')stepId();});
-document.getElementById('login-btn').onclick=stepId;
-
-async function stepId(){
-  const v=document.getElementById('id-input').value.trim();
-  document.getElementById('login-err').textContent='';
-  if(!v||isNaN(v)||Number(v)<=0){document.getElementById('login-err').textContent='正しい数字を入力してください';return;}
-
-  // 管理者ID
-  if(v===ADMIN_ID){
-    // FirebaseにPINが設定済みか確認
+onAuthStateChanged(auth, async user=>{
+  if(!user){
+    go('pg-start');
+    return;
+  }
+  // 管理者メールチェック
+  if(ADMIN_EMAIL && user.email===ADMIN_EMAIL){
+    myUid=user.uid;
     const snap=await get(ref(db,'admin/pin'));
     if(snap.exists()){
-      // PIN入力へ
       document.getElementById('admin-pin-input').value='';
       document.getElementById('admin-pin-err').textContent='';
       go('pg-admin-pin');
-      setTimeout(()=>document.getElementById('admin-pin-input').focus(),100);
     } else {
-      // 初回：PIN設定へ
       document.getElementById('admin-pin-set-input').value='';
       document.getElementById('admin-pin-set-err').textContent='';
       go('pg-admin-pin-set');
-      setTimeout(()=>document.getElementById('admin-pin-set-input').focus(),100);
     }
     return;
   }
-
-  // 一般アカウント
-  const snap=await get(ref(db,`accounts/${v}`));
-  if(snap.exists()){
-    const acc=snap.val();
-    document.getElementById('pin-desc').textContent=`「${acc.nick||v}」としてログイン`;
-    pendingIdForReg=v;
-    document.getElementById('pin-input').value='';
-    document.getElementById('pin-err').textContent='';
-    go('pg-pin');
-    setTimeout(()=>document.getElementById('pin-input').focus(),100);
-  } else {
-    pendingIdForReg=v;
-    document.getElementById('pin-set-input').value='';
-    document.getElementById('pin-set-err').textContent='';
-    go('pg-pin-set');
-    setTimeout(()=>document.getElementById('pin-set-input').focus(),100);
+  // 新規登録後はプロフィール設定へ
+  if(isNewUser){
+    myUid=user.uid;
+    go('pg-profile-set');
+    return;
   }
-}
-
-// PIN設定（新規）
-document.getElementById('pin-set-input').addEventListener('keydown',e=>{if(e.key==='Enter')stepPinSet();});
-document.getElementById('pin-set-btn').onclick=stepPinSet;
-async function stepPinSet(){
-  const pin=document.getElementById('pin-set-input').value.trim();
-  document.getElementById('pin-set-err').textContent='';
-  if(!/^\d{3}$/.test(pin)){document.getElementById('pin-set-err').textContent='3桁の数字を入力してください';return;}
-  await set(ref(db,`accounts/${pendingIdForReg}`),{id:pendingIdForReg,pin,nick:'',createdAt:Date.now()});
-  document.getElementById('nick-input').value='';
-  go('pg-nick');
-  setTimeout(()=>document.getElementById('nick-input').focus(),100);
-}
-
-// PIN入力（既存）
-document.getElementById('pin-input').addEventListener('keydown',e=>{if(e.key==='Enter')stepPin();});
-document.getElementById('pin-btn').onclick=stepPin;
-async function stepPin(){
-  const pin=document.getElementById('pin-input').value.trim();
-  document.getElementById('pin-err').textContent='';
-  if(!/^\d{3}$/.test(pin)){document.getElementById('pin-err').textContent='3桁の数字を入力してください';return;}
-  const snap=await get(ref(db,`accounts/${pendingIdForReg}`));
-  if(!snap.exists()){document.getElementById('pin-err').textContent='アカウントが見つかりません';return;}
+  // 既存ユーザー: プロフィール読み込み
+  const snap=await get(ref(db,`accounts/${user.uid}`));
+  if(!snap.exists()){
+    // プロフィール未設定
+    myUid=user.uid;
+    go('pg-profile-set');
+    return;
+  }
   const acc=snap.val();
-  if(acc.pin!==pin){document.getElementById('pin-err').textContent='PINコードが違います';return;}
-  document.getElementById('nick-input').value=acc.nick||'';
-  go('pg-nick');
-  setTimeout(()=>document.getElementById('nick-input').focus(),100);
+  myUid=user.uid;
+  myAccountId=acc.accountId;
+  myNick=acc.nick||null;
+  enterApp();
+});
+
+// ════════════════════════════════
+//  スタート画面
+// ════════════════════════════════
+document.getElementById('btn-go-login').onclick=()=>go('pg-login');
+document.getElementById('btn-go-register').onclick=()=>go('pg-register');
+
+// ════════════════════════════════
+//  ログイン
+// ════════════════════════════════
+document.getElementById('btn-login-back').onclick=()=>go('pg-start');
+document.getElementById('btn-login-to-register').onclick=()=>go('pg-register');
+document.getElementById('btn-go-reset').onclick=()=>go('pg-reset');
+
+document.getElementById('login-pw').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('login-btn').onclick=doLogin;
+async function doLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const pw=document.getElementById('login-pw').value;
+  const errEl=document.getElementById('login-err');
+  errEl.textContent='';
+  if(!email||!pw){errEl.textContent='メールアドレスとパスワードを入力してください';return;}
+  try{
+    isNewUser=false;
+    await signInWithEmailAndPassword(auth,email,pw);
+    // onAuthStateChanged が発火して画面遷移
+  }catch(e){errEl.textContent=fbErrMsg(e.code);}
 }
 
-// ニックネーム設定
-document.getElementById('nick-btn').onclick=()=>stepNick(false);
-document.getElementById('nick-skip').onclick=()=>stepNick(true);
-document.getElementById('nick-input').addEventListener('keydown',e=>{if(e.key==='Enter')stepNick(false);});
-async function stepNick(skip){
-  const nick=skip?'':(document.getElementById('nick-input').value.trim());
-  await update(ref(db,`accounts/${pendingIdForReg}`),{nick});
-  myId=pendingIdForReg;
-  myNick=nick||null;
-  const newName=displayName();
-  // 過去の投稿・スレのニックネームを一括同期
+// ════════════════════════════════
+//  新規登録
+// ════════════════════════════════
+document.getElementById('btn-register-back').onclick=()=>go('pg-start');
+document.getElementById('reg-pw2').addEventListener('keydown',e=>{if(e.key==='Enter')doRegister();});
+document.getElementById('reg-btn').onclick=doRegister;
+async function doRegister(){
+  const email=document.getElementById('reg-email').value.trim();
+  const pw=document.getElementById('reg-pw').value;
+  const pw2=document.getElementById('reg-pw2').value;
+  const errEl=document.getElementById('reg-err');
+  errEl.textContent='';
+  if(!email||!pw||!pw2){errEl.textContent='すべての項目を入力してください';return;}
+  if(pw!==pw2){errEl.textContent='パスワードが一致しません';return;}
+  if(pw.length<6){errEl.textContent='パスワードは6文字以上にしてください';return;}
   try{
-    const threadsSnap=await get(ref(db,'threads'));
-    const threads=threadsSnap.val()||{};
-    const ups=[];
-    for(const tid of Object.keys(threads)){
-      const postsSnap=await get(ref(db,`posts/${tid}`));
-      const posts=postsSnap.val()||{};
-      for(const [pid,post] of Object.entries(posts)){
-        if(String(post.userId)===String(myId)) ups.push(update(ref(db,`posts/${tid}/${pid}`),{userNick:newName}));
-      }
-      if(String(threads[tid].createdBy)===String(myId)) ups.push(update(ref(db,`threads/${tid}`),{createdByNick:newName}));
-    }
-    await Promise.all(ups);
-  }catch(e){console.warn('同期エラー',e);}
-  document.getElementById('badge-list').textContent=newName;
-  document.getElementById('badge-thread').textContent=newName;
+    isNewUser=true;
+    await createUserWithEmailAndPassword(auth,email,pw);
+    // onAuthStateChanged → pg-profile-set へ
+  }catch(e){errEl.textContent=fbErrMsg(e.code);}
+}
+
+// ════════════════════════════════
+//  パスワードリセット
+// ════════════════════════════════
+document.getElementById('btn-reset-back').onclick=()=>go('pg-login');
+document.getElementById('reset-btn').onclick=async()=>{
+  const email=document.getElementById('reset-email').value.trim();
+  const errEl=document.getElementById('reset-err');
+  const okEl=document.getElementById('reset-ok');
+  errEl.textContent='';okEl.textContent='';
+  if(!email){errEl.textContent='メールアドレスを入力してください';return;}
+  try{
+    await sendPasswordResetEmail(auth,email);
+    okEl.textContent='リセット用メールを送信しました';
+  }catch(e){errEl.textContent=fbErrMsg(e.code);}
+};
+
+// ════════════════════════════════
+//  プロフィール設定
+// ════════════════════════════════
+document.getElementById('profile-set-btn').onclick=doProfileSet;
+document.getElementById('set-nick').addEventListener('keydown',e=>{if(e.key==='Enter')doProfileSet();});
+async function doProfileSet(){
+  const accountId=document.getElementById('set-accountid').value.trim();
+  const nick=document.getElementById('set-nick').value.trim();
+  const errEl=document.getElementById('profile-err');
+  errEl.textContent='';
+  if(!accountId){errEl.textContent='アカウントIDは必須です';return;}
+  if(!validAccountId(accountId)){errEl.textContent='アカウントIDは英数字・_・.のみ、3文字以上で入力してください';return;}
+
+  // IDの重複チェック
+  const idSnap=await get(ref(db,`accountIds/${accountId}`));
+  if(idSnap.exists()){errEl.textContent='このアカウントIDはすでに使われています';return;}
+
+  const newName=nick?`${nick}(@${accountId})`:`@${accountId}`;
+  await set(ref(db,`accounts/${myUid}`),{
+    accountId, nick:nick||'', createdAt:Date.now(), email:auth.currentUser?.email||''
+  });
+  // IDの予約（重複防止用）
+  await set(ref(db,`accountIds/${accountId}`),myUid);
+
+  myAccountId=accountId;
+  myNick=nick||null;
+  isNewUser=false;
+  enterApp();
+}
+
+// ════════════════════════════════
+//  アプリ開始
+// ════════════════════════════════
+function enterApp(){
+  const name=displayName();
+  document.getElementById('badge-list').textContent=name;
+  document.getElementById('badge-thread').textContent=name;
   go('pg-list');
   initList();
 }
@@ -484,35 +575,30 @@ async function stepNick(skip){
 // ════════════════════════════════
 //  管理者ログイン
 // ════════════════════════════════
-
-// 初回PIN設定
+document.getElementById('admin-pin-set-back').onclick=async()=>{await signOut(auth);go('pg-start');};
 document.getElementById('admin-pin-set-input').addEventListener('keydown',e=>{if(e.key==='Enter')stepAdminPinSet();});
 document.getElementById('admin-pin-set-btn').onclick=stepAdminPinSet;
-document.getElementById('admin-pin-set-back').onclick=()=>{go('pg-login');document.getElementById('id-input').value='';};
 async function stepAdminPinSet(){
   const pin=document.getElementById('admin-pin-set-input').value.trim();
   document.getElementById('admin-pin-set-err').textContent='';
   if(!/^\d{3}$/.test(pin)){document.getElementById('admin-pin-set-err').textContent='3桁の数字を入力してください';return;}
   await set(ref(db,'admin/pin'),pin);
-  go('pg-admin');
-  loadAdmin();
+  go('pg-admin');loadAdmin();
 }
 
-// PIN入力
+document.getElementById('admin-pin-back').onclick=async()=>{await signOut(auth);go('pg-start');};
 document.getElementById('admin-pin-input').addEventListener('keydown',e=>{if(e.key==='Enter')stepAdminPin();});
 document.getElementById('admin-pin-btn').onclick=stepAdminPin;
-document.getElementById('admin-pin-back').onclick=()=>{go('pg-login');document.getElementById('id-input').value='';};
 async function stepAdminPin(){
   const pin=document.getElementById('admin-pin-input').value.trim();
   document.getElementById('admin-pin-err').textContent='';
   if(!/^\d{3}$/.test(pin)){document.getElementById('admin-pin-err').textContent='3桁の数字を入力してください';return;}
   const snap=await get(ref(db,'admin/pin'));
   if(!snap.exists()||snap.val()!==pin){document.getElementById('admin-pin-err').textContent='PINが違います';return;}
-  go('pg-admin');
-  loadAdmin();
+  go('pg-admin');loadAdmin();
 }
 
-document.getElementById('admin-back').onclick=()=>{go('pg-login');document.getElementById('id-input').value='';};
+document.getElementById('admin-back').onclick=async()=>{await signOut(auth);go('pg-start');};
 
 // ════════════════════════════════
 //  管理者ページ
@@ -523,40 +609,35 @@ window.switchTab=function(tab){
   document.getElementById('tab-threads').classList.toggle('on',tab==='threads');
   loadAdmin();
 };
-
 function loadAdmin(){
   const el=document.getElementById('admin-body');
   el.innerHTML='<div class="admin-empty">読み込み中...</div>';
   if(adminTab==='accounts') loadAdminAccounts(el);
   else loadAdminThreads(el);
 }
-
 async function loadAdminAccounts(el){
   const snap=await get(ref(db,'accounts'));
   const data=snap.val()||{};
   const entries=Object.entries(data).sort((a,b)=>a[1].createdAt-b[1].createdAt);
   if(!entries.length){el.innerHTML='<div class="admin-empty">アカウントがありません</div>';return;}
   el.innerHTML='';
-  entries.forEach(([id,acc])=>{
+  entries.forEach(([uid,acc])=>{
     const card=document.createElement('div');card.className='admin-card';
     card.innerHTML=`
-      <div class="admin-card-id">${esc(id)}</div>
+      <div class="admin-card-id">@${esc(acc.accountId||'')}</div>
       <div class="admin-card-row"><span class="admin-card-label">ニックネーム</span><span class="admin-card-val">${esc(acc.nick||'（未設定）')}</span></div>
-      <div class="admin-card-row"><span class="admin-card-label">PIN</span><span class="admin-card-val">${esc(acc.pin||'')}</span></div>
+      <div class="admin-card-row"><span class="admin-card-label">メール</span><span class="admin-card-val">${esc(acc.email||'')}</span></div>
       <div class="admin-card-row"><span class="admin-card-label">登録日時</span><span class="admin-card-val">${fmt(acc.createdAt)}</span></div>`;
     const btnRow=document.createElement('div');btnRow.className='admin-btn-row';
-    const delBtn=document.createElement('button');
-    delBtn.className='admin-btn black';delBtn.textContent='アカウント削除';
-    delBtn.onclick=()=>showConfirm(`ID: ${id} を削除しますか？`,async()=>{
-      await remove(ref(db,`accounts/${id}`));
+    const delBtn=document.createElement('button');delBtn.className='admin-btn black';delBtn.textContent='アカウント削除';
+    delBtn.onclick=()=>showConfirm(`@${acc.accountId} を削除しますか？`,async()=>{
+      if(acc.accountId) await remove(ref(db,`accountIds/${acc.accountId}`));
+      await remove(ref(db,`accounts/${uid}`));
       loadAdmin();
     });
-    btnRow.appendChild(delBtn);
-    card.appendChild(btnRow);
-    el.appendChild(card);
+    btnRow.appendChild(delBtn);card.appendChild(btnRow);el.appendChild(card);
   });
 }
-
 async function loadAdminThreads(el){
   const snap=await get(ref(db,'threads'));
   const data=snap.val()||{};
@@ -571,44 +652,27 @@ async function loadAdminThreads(el){
       <div class="admin-card-row"><span class="admin-card-label">投稿数</span><span class="admin-card-val">${t.postCount||0}件</span></div>
       <div class="admin-card-row"><span class="admin-card-label">最終活動</span><span class="admin-card-val">${fmt(t.lastActivity)}</span></div>`;
     const btnRow=document.createElement('div');btnRow.className='admin-btn-row';
-    const viewBtn=document.createElement('button');
-    viewBtn.className='admin-btn white';viewBtn.textContent='投稿を管理';
+    const viewBtn=document.createElement('button');viewBtn.className='admin-btn white';viewBtn.textContent='投稿を管理';
     viewBtn.onclick=()=>loadAdminPosts(el,tid,t.title);
-    const delBtn=document.createElement('button');
-    delBtn.className='admin-btn black';delBtn.textContent='スレッド削除';
-    delBtn.onclick=()=>showConfirm(`「${t.title}」を削除しますか？\n（投稿もすべて削除されます）`,async()=>{
-      await remove(ref(db,`threads/${tid}`));
-      await remove(ref(db,`posts/${tid}`));
-      loadAdmin();
+    const delBtn=document.createElement('button');delBtn.className='admin-btn black';delBtn.textContent='スレッド削除';
+    delBtn.onclick=()=>showConfirm(`「${t.title}」を削除しますか？`,async()=>{
+      await remove(ref(db,`threads/${tid}`));await remove(ref(db,`posts/${tid}`));loadAdmin();
     });
-    btnRow.appendChild(viewBtn);
-    btnRow.appendChild(delBtn);
-    card.appendChild(btnRow);
-    el.appendChild(card);
+    btnRow.appendChild(viewBtn);btnRow.appendChild(delBtn);card.appendChild(btnRow);el.appendChild(card);
   });
 }
-
 async function loadAdminPosts(el,tid,title){
   el.innerHTML='<div class="admin-empty">読み込み中...</div>';
   const snap=await get(ref(db,`posts/${tid}`));
   const data=snap.val()||{};
   const entries=Object.entries(data).sort((a,b)=>(a[1].ts||0)-(b[1].ts||0));
-
-  // 戻るヘッダー
   const backRow=document.createElement('div');backRow.className='admin-section-back';
   const backBtn=document.createElement('button');backBtn.textContent='← 戻る';
   backBtn.onclick=()=>loadAdminThreads(el);
   backRow.appendChild(backBtn);
-  backRow.appendChild(document.createTextNode(' ' + title + ' の投稿'));
-
-  el.innerHTML='';
-  el.appendChild(backRow);
-
-  if(!entries.length){
-    const emp=document.createElement('div');emp.className='admin-empty';emp.textContent='投稿がありません';
-    el.appendChild(emp);return;
-  }
-
+  backRow.appendChild(document.createTextNode(' '+title+' の投稿'));
+  el.innerHTML='';el.appendChild(backRow);
+  if(!entries.length){const emp=document.createElement('div');emp.className='admin-empty';emp.textContent='投稿がありません';el.appendChild(emp);return;}
   entries.forEach(([pid,post],i)=>{
     const card=document.createElement('div');card.className='admin-card';
     const preview=post.text?(post.text.length>80?post.text.slice(0,80)+'…':post.text):'（画像投稿）';
@@ -617,17 +681,14 @@ async function loadAdminPosts(el,tid,title){
       <div class="admin-card-row"><span class="admin-card-label">内容</span><span class="admin-card-val">${esc(preview)}</span></div>
       <div class="admin-card-row"><span class="admin-card-label">日時</span><span class="admin-card-val">${fmt(post.ts)}</span></div>`;
     const btnRow=document.createElement('div');btnRow.className='admin-btn-row';
-    const delBtn=document.createElement('button');
-    delBtn.className='admin-btn black';delBtn.textContent='投稿削除';
+    const delBtn=document.createElement('button');delBtn.className='admin-btn black';delBtn.textContent='投稿削除';
     delBtn.onclick=()=>showConfirm('この投稿を削除しますか？',async()=>{
       await remove(ref(db,`posts/${tid}/${pid}`));
       const tsnap=await get(ref(db,`threads/${tid}`));
-      if(tsnap.exists()) await update(ref(db,`threads/${tid}`),{postCount:Math.max(0,(tsnap.val().postCount||1)-1)});
+      if(tsnap.exists())await update(ref(db,`threads/${tid}`),{postCount:Math.max(0,(tsnap.val().postCount||1)-1)});
       loadAdminPosts(el,tid,title);
     });
-    btnRow.appendChild(delBtn);
-    card.appendChild(btnRow);
-    el.appendChild(card);
+    btnRow.appendChild(delBtn);card.appendChild(btnRow);el.appendChild(card);
   });
 }
 
@@ -647,7 +708,6 @@ function initList(){
     renderList(data);
   });
 }
-
 function renderList(data){
   const el=document.getElementById('thread-list');
   const entries=Object.entries(data).sort((a,b)=>(b[1].lastActivity||0)-(a[1].lastActivity||0));
@@ -665,7 +725,7 @@ function renderList(data){
       </div>
       <div class="th-right"><div class="th-count">${t.postCount||0}件</div><div class="th-arrow">›</div></div>`;
     d.onclick=()=>enterThread(tid,t.title);
-    if(String(t.createdBy)===String(myId)){
+    if(t.createdByUid===myUid){
       longPress(d,()=>showConfirm(`「${t.title}」を削除しますか？\n（投稿もすべて削除されます）`,async()=>{
         await remove(ref(db,`threads/${tid}`));await remove(ref(db,`posts/${tid}`));
       }));
@@ -673,7 +733,6 @@ function renderList(data){
     el.appendChild(d);
   });
 }
-
 document.getElementById('fab').onclick=()=>{
   document.getElementById('modal-wrap').classList.add('on');
   setTimeout(()=>document.getElementById('thread-title-inp').focus(),100);
@@ -687,7 +746,7 @@ async function doCreate(){
   const title=document.getElementById('thread-title-inp').value.trim();
   if(!title){alert('タイトルを入力してください');return;}
   const now=Date.now();
-  await push(ref(db,'threads'),{title,createdBy:myId,createdByNick:displayName(),createdAt:now,lastActivity:now,postCount:0});
+  await push(ref(db,'threads'),{title,createdBy:displayName(),createdByUid:myUid,createdByNick:displayName(),createdAt:now,lastActivity:now,postCount:0});
   closeModal();
 }
 
@@ -708,7 +767,6 @@ function enterThread(tid,title){
     renderPosts(snap.val()||{});
   });
 }
-
 document.getElementById('btn-back').onclick=()=>{curTid=null;replyTo=null;pendingImg=null;go('pg-list');};
 
 function renderPosts(data){
@@ -721,11 +779,11 @@ function renderPosts(data){
   if(atBot)area.scrollTop=area.scrollHeight;
   if(replyTo){const el=document.getElementById('p-'+replyTo.pid);if(el)el.classList.add('replying');}
 }
-
 function mkPost(pid,post,num,all){
   const div=document.createElement('div');div.className='post';div.id='p-'+pid;
-  const c=col(post.userId),isMe=String(post.userId)===String(myId);
-  const name=post.userNick||post.userId;
+  const isMe=post.uid===myUid;
+  const name=post.userNick||post.userId||'名無し';
+  const c=col(post.uid||post.userId||'');
   const hdr=document.createElement('div');hdr.className='post-hdr';
   hdr.innerHTML=`
     <div class="p-av" style="background:${c}">${String(name).slice(0,3)}</div>
@@ -736,7 +794,7 @@ function mkPost(pid,post,num,all){
   div.appendChild(hdr);
   if(post.replyTo&&all[post.replyTo]){
     const o=all[post.replyTo];
-    const oname=o.userNick||o.userId;
+    const oname=o.userNick||o.userId||'名無し';
     const prev=o.text?(o.text.length>60?o.text.slice(0,60)+'…':o.text):'（画像）';
     const q=document.createElement('div');q.className='quote';
     q.innerHTML=`<div class="q-user">${esc(oname)} より</div><div class="q-text">${esc(prev)}</div>`;
@@ -747,14 +805,14 @@ function mkPost(pid,post,num,all){
     const img=document.createElement('img');img.className='post-img';img.src=post.imageData;img.alt='';
     img.onclick=e=>e.stopPropagation();div.appendChild(img);
   }
-  const likes=post.likes||{};const liked=!!likes[myId];
+  const likes=post.likes||{};const liked=!!likes[myUid];
   const foot=document.createElement('div');foot.className='post-foot';
   const lb=document.createElement('button');lb.className='like-btn'+(liked?' on':'');
   lb.innerHTML=`<span>${liked?'❤️':'🤍'}</span><span style="margin-left:2px;font-weight:700">${Object.keys(likes).length||''}</span>`;
   lb.onclick=async e=>{
     e.stopPropagation();
-    if(liked)await remove(ref(db,`posts/${curTid}/${pid}/likes/${myId}`));
-    else await update(ref(db,`posts/${curTid}/${pid}/likes`),{[myId]:true});
+    if(liked)await remove(ref(db,`posts/${curTid}/${pid}/likes/${myUid}`));
+    else await update(ref(db,`posts/${curTid}/${pid}/likes`),{[myUid]:true});
   };
   foot.appendChild(lb);div.appendChild(foot);
   div.onclick=()=>setReply(pid,name,post.text||'（画像）');
@@ -767,7 +825,6 @@ function mkPost(pid,post,num,all){
   }
   return div;
 }
-
 function setReply(pid,name,text){
   replyTo={pid,name,text};
   document.getElementById('reply-prev').textContent=`${name}：${text.length>40?text.slice(0,40)+'…':text}`;
@@ -780,7 +837,6 @@ document.getElementById('reply-cancel').onclick=()=>{
   replyTo=null;document.getElementById('reply-bar').classList.remove('on');
   document.querySelectorAll('.post').forEach(e=>e.classList.remove('replying'));
 };
-
 document.getElementById('img-btn').onclick=()=>{
   if(getDayCount()>=IMG_LIMIT){alert(`画像は1日${IMG_LIMIT}枚まで`);return;}
   document.getElementById('img-file').click();
@@ -799,7 +855,6 @@ document.getElementById('img-prev-del').onclick=()=>{
   document.getElementById('img-prev-wrap').classList.remove('on');
   document.getElementById('img-btn').classList.remove('on');
 };
-
 document.getElementById('post-input').addEventListener('keydown',e=>{
   if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doPost();}
 });
@@ -807,7 +862,6 @@ document.getElementById('post-input').addEventListener('input',function(){
   this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px';
 });
 document.getElementById('send-btn').onclick=doPost;
-
 async function doPost(){
   const inp=document.getElementById('post-input');
   const text=inp.value.trim();
@@ -816,7 +870,7 @@ async function doPost(){
   if(pendingImg&&getDayCount()>=IMG_LIMIT){alert(`画像は1日${IMG_LIMIT}枚まで`);return;}
   inp.value='';inp.style.height='auto';
   const now=Date.now();
-  const data={userId:myId,userNick:displayName(),text:text||'',ts:now};
+  const data={uid:myUid,userId:myAccountId,userNick:displayName(),text:text||'',ts:now};
   if(replyTo)data.replyTo=replyTo.pid;
   if(pendingImg){
     data.imageData=pendingImg;incDayCount();pendingImg=null;
