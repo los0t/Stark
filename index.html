@@ -10,17 +10,15 @@
 <meta property="og:url" content="https://los0t.github.io/Stark/">
 <meta property="og:image" content="mark_chuui.png">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html{height:100%;overflow:hidden}
 body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;background:#fff;color:#111}
-
 .pg{position:fixed;inset:0;display:flex;flex-direction:column;background:#fff;visibility:hidden;pointer-events:none;overflow:hidden}
 .pg.on{visibility:visible;pointer-events:auto}
 #pg-start,#pg-login,#pg-register,#pg-reset,#pg-profile-set,#pg-admin-pin,#pg-admin-pin-set{align-items:center;justify-content:center;background:#f4f4f4}
-
-:root{--red:#c0392b;}
-
+:root{--red:#c0392b}
 .auth-box{background:#fff;border:2px solid #111;border-radius:16px;padding:36px 28px;width:min(340px,92vw);display:flex;flex-direction:column;gap:14px;align-items:center;box-shadow:4px 4px 0 #111}
 .logo{font-family:'JetBrains Mono',monospace;font-size:26px;color:#111;font-weight:700;letter-spacing:-1px}
 .auth-desc{font-size:13px;color:#555;text-align:center;line-height:1.8}
@@ -141,9 +139,9 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
 ::-webkit-scrollbar-thumb{background:#ccc;border-radius:2px}
 </style>
 </head>
+
 <body>
 
-<!-- ページ1: スタート（ログイン/新規登録選択） -->
 <div id="pg-start" class="pg on">
   <div class="auth-box">
     <div class="logo">Ecstasy</div>
@@ -153,7 +151,6 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
   </div>
 </div>
 
-<!-- ページ2: ログイン -->
 <div id="pg-login" class="pg">
   <div class="auth-box">
     <div class="logo">Ecstasy</div>
@@ -171,7 +168,6 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
   </div>
 </div>
 
-<!-- ページ3: 新規登録 -->
 <div id="pg-register" class="pg">
   <div class="auth-box">
     <div class="logo">Ecstasy</div>
@@ -188,7 +184,6 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
   </div>
 </div>
 
-<!-- ページ4: パスワードリセット -->
 <div id="pg-reset" class="pg">
   <div class="auth-box">
     <div class="logo">Ecstasy</div>
@@ -202,32 +197,43 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
   </div>
 </div>
 
-<!-- ページ5: プロフィール設定（新規登録後） -->
 <div id="pg-profile-set" class="pg">
   <div class="auth-box">
     <div class="logo">Ecstasy</div>
     <p class="auth-desc">プロフィールを設定してください</p>
+
     <div class="auth-label">アカウントID（必須）</div>
-    <input id="set-accountid" class="auth-input" type="text" placeholder="例: saji_123" autocomplete="off" maxlength="20">
+    <input id="set-accountid" class="auth-input" type="text"
+      placeholder="ecstasy_0"
+      autocomplete="off"
+      maxlength="20">
+
     <p class="id-hint">英数字・アンダーバー(_)・ドット(.)のみ使用可</p>
+
     <div class="auth-label">ニックネーム（任意）</div>
-    <input id="set-nick" class="auth-input" type="text" placeholder="例: さじ" autocomplete="off" maxlength="20">
+    <input id="set-nick" class="auth-input" type="text"
+      placeholder="エクスタシーさん"
+      autocomplete="off"
+      maxlength="20">
+
     <div class="auth-error" id="profile-err"></div>
     <button class="auth-btn" id="profile-set-btn">Ecstasyをはじめる</button>
   </div>
 </div>
 
-<!-- ページ6: スレッド一覧 -->
 <div id="pg-list" class="pg">
   <div class="hdr">
     <div class="hdr-title">Ecstasy</div>
     <div class="hdr-sub" id="sync-lbl"></div>
     <div class="hdr-badge" id="badge-list"></div>
   </div>
+
   <div class="list-wrap" id="thread-list">
     <div class="list-empty">スレッドがありません<br>右下の ＋ から作成できます</div>
   </div>
+
   <button class="fab" id="fab">＋</button>
+
   <div class="modal-wrap" id="modal-wrap">
     <div class="modal">
       <h3>📝 新しいスレッドを作る</h3>
@@ -240,14 +246,15 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
   </div>
 </div>
 
-<!-- ページ7: スレッド内 -->
 <div id="pg-thread" class="pg">
   <div class="hdr">
     <button class="hdr-back" id="btn-back">← 一覧</button>
     <div class="hdr-thread-title" id="thread-ttl"></div>
     <div class="hdr-badge" id="badge-thread"></div>
   </div>
+
   <div class="posts-wrap" id="posts-area"></div>
+
   <div class="reply-bar" id="reply-bar">
     <div class="rb-body">
       <div class="rb-label">↩ 返信中</div>
@@ -255,10 +262,12 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
     </div>
     <button class="rb-x" id="reply-cancel">✕</button>
   </div>
+
   <div class="img-prev-wrap" id="img-prev-wrap">
     <img class="img-prev" id="img-prev" src="" alt="">
     <button class="img-prev-del" id="img-prev-del">✕</button>
   </div>
+
   <div class="input-bar">
     <button class="img-btn" id="img-btn">🖼</button>
     <input type="file" id="img-file" accept="image/*" style="display:none">
@@ -267,7 +276,6 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
   </div>
 </div>
 
-<!-- ページ8: 管理者PIN設定（初回） -->
 <div id="pg-admin-pin-set" class="pg">
   <div class="auth-box">
     <div class="logo">Ecstasy</div>
@@ -280,7 +288,6 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
   </div>
 </div>
 
-<!-- ページ9: 管理者PIN入力 -->
 <div id="pg-admin-pin" class="pg">
   <div class="auth-box">
     <div class="logo">Ecstasy</div>
@@ -293,21 +300,21 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
   </div>
 </div>
 
-<!-- ページ10: 管理者ページ -->
 <div id="pg-admin" class="pg">
   <div class="hdr">
     <div class="hdr-title">Ecstasy</div>
     <span style="font-size:12px;color:#aaa">管理者</span>
     <button class="hdr-back" style="margin-left:auto" id="admin-back">← 戻る</button>
   </div>
+
   <div class="admin-tabs">
     <button class="admin-tab on" id="tab-accounts" onclick="switchTab('accounts')">アカウント</button>
     <button class="admin-tab" id="tab-threads" onclick="switchTab('threads')">スレッド</button>
   </div>
+
   <div class="admin-wrap" id="admin-body"></div>
 </div>
 
-<!-- 確認ダイアログ -->
 <div class="confirm-wrap" id="confirm-wrap">
   <div class="confirm-box">
     <p id="confirm-msg"></p>
@@ -319,17 +326,40 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+
 import {
-  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  sendPasswordResetEmail, onAuthStateChanged, signOut
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getDatabase,ref,push,onValue,remove,get,set,update }
-  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  onAuthStateChanged,
+  signOut
+}
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-const ADMIN_EMAIL = ''; // ← 管理者メールアドレスを後で設定
+import {
+  getDatabase,
+  ref,
+  push,
+  onValue,
+  remove,
+  get,
+  set,
+  update
+}
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-const fbApp = initializeApp({
+
+/* ==============================
+   Firebase
+============================== */
+
+const ADMIN_UID="X6oRvkFZS9bgUpaIT44xi8zfv523";
+
+const fbApp=initializeApp({
   apiKey:"AIzaSyDl8UJ_ibhxGrtZ6vfyPit5S3_vACs371U",
   authDomain:"onlychat-de190.firebaseapp.com",
   databaseURL:"https://onlychat-de190-default-rtdb.firebaseio.com",
@@ -338,561 +368,2061 @@ const fbApp = initializeApp({
   messagingSenderId:"619416583908",
   appId:"1:619416583908:web:ba5b8487baa5322fb2f6f1"
 });
-const auth = getAuth(fbApp);
-const db = getDatabase(fbApp);
 
-// ── 状態
-let myUid=null, myAccountId=null, myNick=null;
-let curTid=null, replyTo=null, pendingImg=null;
+const auth=getAuth(fbApp);
+const db=getDatabase(fbApp);
+
+
+/* ==============================
+   状態
+============================== */
+
+let myUid=null;
+let myAccountId=null;
+let myNick=null;
+
+let curTid=null;
+let replyTo=null;
+let pendingImg=null;
+
 let adminTab='accounts';
-let isNewUser=false; // 新規登録フラグ
+let isNewUser=false;
 
-// ── 画像上限
+
+/* ==============================
+   画像
+============================== */
+
 const IMG_LIMIT=5;
-const dayKey=()=>'ecstasy_img_'+new Date().toDateString();
-const getDayCount=()=>parseInt(localStorage.getItem(dayKey())||'0');
-const incDayCount=()=>localStorage.setItem(dayKey(),getDayCount()+1);
 
-// ── 画面切替
+const dayKey=()=>'ecstasy_img_'+new Date().toDateString();
+
+const getDayCount=()=>parseInt(
+  localStorage.getItem(dayKey())||'0'
+);
+
+const incDayCount=()=>localStorage.setItem(
+  dayKey(),
+  getDayCount()+1
+);
+
+
+/* ==============================
+   画面
+============================== */
+
 function go(id){
-  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
-  document.getElementById(id).classList.add('on');
+  document.querySelectorAll('.pg')
+    .forEach(p=>p.classList.remove('on'));
+
+  document.getElementById(id)
+    .classList.add('on');
 }
 
-// ── ユーティリティ
-const COLS=['#5b52e8','#e85290','#16a34a','#d97706','#0284c7','#9333ea','#0891b2','#dc2626'];
-const col=id=>COLS[String(id).split('').reduce((a,c)=>a+c.charCodeAt(0),0)%COLS.length];
+
+/* ==============================
+   Utility
+============================== */
+
+const COLS=[
+  '#5b52e8','#e85290','#16a34a','#d97706',
+  '#0284c7','#9333ea','#0891b2','#dc2626'
+];
+
+const col=id=>
+  COLS[
+    String(id)
+      .split('')
+      .reduce((a,c)=>a+c.charCodeAt(0),0)
+      %COLS.length
+  ];
+
 const fmt=ts=>{
   if(!ts)return'';
+
   const d=new Date(ts);
-  return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+
+  return`${d.getMonth()+1}/${d.getDate()} ${
+    String(d.getHours()).padStart(2,'0')
+  }:${
+    String(d.getMinutes()).padStart(2,'0')
+  }`;
 };
-const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const displayName=()=>myNick?`${myNick}(@${myAccountId})`:`@${myAccountId}`;
 
-// アカウントIDのバリデーション
-const validAccountId=v=>/^[a-zA-Z0-9._]+$/.test(v)&&v.length>=3;
+const esc=s=>String(s)
+  .replace(/&/g,'&amp;')
+  .replace(/</g,'&lt;')
+  .replace(/>/g,'&gt;');
 
-// Firebaseエラーメッセージを日本語に
+const displayName=()=>
+  myNick
+    ? `${myNick}(@${myAccountId})`
+    : `@${myAccountId}`;
+
+const isAdmin=()=>myUid===ADMIN_UID;
+
+const validAccountId=v=>
+  /^[a-zA-Z0-9._]+$/.test(v)&&v.length>=3;
+
+
+/* ==============================
+   Firebase error
+============================== */
+
 function fbErrMsg(code){
+
   const map={
-    'auth/email-already-in-use':'このメールアドレスは既に使われています',
-    'auth/invalid-email':'メールアドレスの形式が正しくありません',
-    'auth/weak-password':'パスワードは6文字以上にしてください',
-    'auth/user-not-found':'このメールアドレスは登録されていません',
-    'auth/wrong-password':'パスワードが違います',
-    'auth/invalid-credential':'メールアドレスまたはパスワードが違います',
-    'auth/too-many-requests':'試行回数が多すぎます。しばらくお待ちください',
+    'auth/email-already-in-use':
+      'このメールアドレスは既に使われています',
+
+    'auth/invalid-email':
+      'メールアドレスの形式が正しくありません',
+
+    'auth/weak-password':
+      'パスワードは6文字以上にしてください',
+
+    'auth/user-not-found':
+      'このメールアドレスは登録されていません',
+
+    'auth/wrong-password':
+      'パスワードが違います',
+
+    'auth/invalid-credential':
+      'メールアドレスまたはパスワードが違います',
+
+    'auth/too-many-requests':
+      '試行回数が多すぎます。しばらくお待ちください'
   };
+
   return map[code]||'エラーが発生しました';
 }
 
-// ── 確認ダイアログ
-let confirmCb=null;
-const showConfirm=(msg,cb)=>{confirmCb=cb;document.getElementById('confirm-msg').textContent=msg;document.getElementById('confirm-wrap').classList.add('on');};
-document.getElementById('c-no').onclick=()=>{document.getElementById('confirm-wrap').classList.remove('on');confirmCb=null;};
-document.getElementById('c-yes').onclick=()=>{document.getElementById('confirm-wrap').classList.remove('on');if(confirmCb)confirmCb();confirmCb=null;};
 
-// ── 長押し
+/* ==============================
+   Confirm
+============================== */
+
+let confirmCb=null;
+
+const showConfirm=(msg,cb)=>{
+
+  confirmCb=cb;
+
+  document.getElementById('confirm-msg')
+    .textContent=msg;
+
+  document.getElementById('confirm-wrap')
+    .classList.add('on');
+};
+
+document.getElementById('c-no').onclick=()=>{
+
+  document.getElementById('confirm-wrap')
+    .classList.remove('on');
+
+  confirmCb=null;
+};
+
+document.getElementById('c-yes').onclick=()=>{
+
+  document.getElementById('confirm-wrap')
+    .classList.remove('on');
+
+  if(confirmCb)confirmCb();
+
+  confirmCb=null;
+};
+
+
+/* ==============================
+   Long press
+============================== */
+
 function longPress(el,cb){
-  let t=null,moved=false;
-  el.addEventListener('touchstart',()=>{moved=false;t=setTimeout(()=>{if(!moved)cb();},600)},{passive:true});
-  el.addEventListener('touchend',()=>clearTimeout(t));
-  el.addEventListener('touchmove',()=>{moved=true;clearTimeout(t)},{passive:true});
+
+  let t=null;
+  let moved=false;
+
+  el.addEventListener(
+    'touchstart',
+    ()=>{
+      moved=false;
+
+      t=setTimeout(()=>{
+        if(!moved)cb();
+      },600);
+    },
+    {passive:true}
+  );
+
+  el.addEventListener(
+    'touchend',
+    ()=>clearTimeout(t)
+  );
+
+  el.addEventListener(
+    'touchmove',
+    ()=>{
+      moved=true;
+      clearTimeout(t);
+    },
+    {passive:true}
+  );
 }
 
-// ── 画像圧縮
+
+/* ==============================
+   Image compression
+============================== */
+
 function compress(file){
+
   return new Promise((res,rej)=>{
-    const r=new FileReader();r.onerror=rej;
+
+    const r=new FileReader();
+
+    r.onerror=rej;
+
     r.onload=e=>{
-      const img=new Image();img.onerror=rej;
+
+      const img=new Image();
+
+      img.onerror=rej;
+
       img.onload=()=>{
-        const MAX=600;let w=img.width,h=img.height;
-        if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
-        if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
-        const cv=document.createElement('canvas');cv.width=w;cv.height=h;
-        cv.getContext('2d').drawImage(img,0,0,w,h);
-        res(cv.toDataURL('image/jpeg',0.65));
+
+        const MAX=600;
+
+        let w=img.width;
+        let h=img.height;
+
+        if(w>MAX){
+          h=Math.round(h*MAX/w);
+          w=MAX;
+        }
+
+        if(h>MAX){
+          w=Math.round(w*MAX/h);
+          h=MAX;
+        }
+
+        const cv=document.createElement('canvas');
+
+        cv.width=w;
+        cv.height=h;
+
+        cv.getContext('2d')
+          .drawImage(img,0,0,w,h);
+
+        res(
+          cv.toDataURL(
+            'image/jpeg',
+            .65
+          )
+        );
       };
+
       img.src=e.target.result;
     };
+
     r.readAsDataURL(file);
   });
 }
 
-// ════════════════════════════════
-//  Auth状態監視（セッション復元）
-// ════════════════════════════════
-onAuthStateChanged(auth, async user=>{
+
+/* ==============================
+   Auth state
+============================== */
+
+onAuthStateChanged(auth,async user=>{
+
   if(!user){
+
+    myUid=null;
+    myAccountId=null;
+    myNick=null;
+
     go('pg-start');
     return;
   }
-  // 管理者メールチェック
-  if(ADMIN_EMAIL && user.email===ADMIN_EMAIL){
-    myUid=user.uid;
-    const snap=await get(ref(db,'admin/pin'));
+
+  myUid=user.uid;
+
+  /* 管理者 */
+  if(isAdmin()){
+
+    const snap=await get(
+      ref(db,'admin/pin')
+    );
+
     if(snap.exists()){
-      document.getElementById('admin-pin-input').value='';
-      document.getElementById('admin-pin-err').textContent='';
+
+      document.getElementById(
+        'admin-pin-input'
+      ).value='';
+
+      document.getElementById(
+        'admin-pin-err'
+      ).textContent='';
+
       go('pg-admin-pin');
-    } else {
-      document.getElementById('admin-pin-set-input').value='';
-      document.getElementById('admin-pin-set-err').textContent='';
+
+    }else{
+
+      document.getElementById(
+        'admin-pin-set-input'
+      ).value='';
+
+      document.getElementById(
+        'admin-pin-set-err'
+      ).textContent='';
+
       go('pg-admin-pin-set');
     }
+
     return;
   }
-  // 新規登録後はプロフィール設定へ
+
+
   if(isNewUser){
-    myUid=user.uid;
+
     go('pg-profile-set');
     return;
   }
-  // 既存ユーザー: プロフィール読み込み
-  const snap=await get(ref(db,`accounts/${user.uid}`));
+
+
+  const snap=await get(
+    ref(db,`accounts/${user.uid}`)
+  );
+
   if(!snap.exists()){
-    // プロフィール未設定
-    myUid=user.uid;
+
     go('pg-profile-set');
     return;
   }
+
   const acc=snap.val();
-  myUid=user.uid;
+
   myAccountId=acc.accountId;
   myNick=acc.nick||null;
+
   enterApp();
 });
 
-// ════════════════════════════════
-//  スタート画面
-// ════════════════════════════════
-document.getElementById('btn-go-login').onclick=()=>go('pg-login');
-document.getElementById('btn-go-register').onclick=()=>go('pg-register');
 
-// ════════════════════════════════
-//  ログイン
-// ════════════════════════════════
-document.getElementById('btn-login-back').onclick=()=>go('pg-start');
-document.getElementById('btn-login-to-register').onclick=()=>go('pg-register');
-document.getElementById('btn-go-reset').onclick=()=>go('pg-reset');
+/* ==============================
+   Start
+============================== */
 
-document.getElementById('login-pw').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-document.getElementById('login-btn').onclick=doLogin;
+document.getElementById(
+  'btn-go-login'
+).onclick=()=>go('pg-login');
+
+document.getElementById(
+  'btn-go-register'
+).onclick=()=>go('pg-register');
+
+
+/* ==============================
+   Login
+============================== */
+
+document.getElementById(
+  'btn-login-back'
+).onclick=()=>go('pg-start');
+
+document.getElementById(
+  'btn-login-to-register'
+).onclick=()=>go('pg-register');
+
+document.getElementById(
+  'btn-go-reset'
+).onclick=()=>go('pg-reset');
+
+document.getElementById(
+  'login-pw'
+).addEventListener(
+  'keydown',
+  e=>{
+    if(e.key==='Enter')doLogin();
+  }
+);
+
+document.getElementById(
+  'login-btn'
+).onclick=doLogin;
+
 async function doLogin(){
-  const email=document.getElementById('login-email').value.trim();
-  const pw=document.getElementById('login-pw').value;
-  const errEl=document.getElementById('login-err');
+
+  const email=document
+    .getElementById('login-email')
+    .value.trim();
+
+  const pw=document
+    .getElementById('login-pw')
+    .value;
+
+  const errEl=document
+    .getElementById('login-err');
+
   errEl.textContent='';
-  if(!email||!pw){errEl.textContent='メールアドレスとパスワードを入力してください';return;}
+
+  if(!email||!pw){
+
+    errEl.textContent=
+      'メールアドレスとパスワードを入力してください';
+
+    return;
+  }
+
   try{
+
     isNewUser=false;
-    await signInWithEmailAndPassword(auth,email,pw);
-    // onAuthStateChanged が発火して画面遷移
-  }catch(e){errEl.textContent=fbErrMsg(e.code);}
+
+    await signInWithEmailAndPassword(
+      auth,
+      email,
+      pw
+    );
+
+  }catch(e){
+
+    errEl.textContent=fbErrMsg(e.code);
+  }
 }
 
-// ════════════════════════════════
-//  新規登録
-// ════════════════════════════════
-document.getElementById('btn-register-back').onclick=()=>go('pg-start');
-document.getElementById('reg-pw2').addEventListener('keydown',e=>{if(e.key==='Enter')doRegister();});
-document.getElementById('reg-btn').onclick=doRegister;
+
+/* ==============================
+   Register
+============================== */
+
+document.getElementById(
+  'btn-register-back'
+).onclick=()=>go('pg-start');
+
+document.getElementById(
+  'reg-pw2'
+).addEventListener(
+  'keydown',
+  e=>{
+    if(e.key==='Enter')doRegister();
+  }
+);
+
+document.getElementById(
+  'reg-btn'
+).onclick=doRegister;
+
 async function doRegister(){
-  const email=document.getElementById('reg-email').value.trim();
-  const pw=document.getElementById('reg-pw').value;
-  const pw2=document.getElementById('reg-pw2').value;
-  const errEl=document.getElementById('reg-err');
+
+  const email=document
+    .getElementById('reg-email')
+    .value.trim();
+
+  const pw=document
+    .getElementById('reg-pw')
+    .value;
+
+  const pw2=document
+    .getElementById('reg-pw2')
+    .value;
+
+  const errEl=document
+    .getElementById('reg-err');
+
   errEl.textContent='';
-  if(!email||!pw||!pw2){errEl.textContent='すべての項目を入力してください';return;}
-  if(pw!==pw2){errEl.textContent='パスワードが一致しません';return;}
-  if(pw.length<6){errEl.textContent='パスワードは6文字以上にしてください';return;}
+
+  if(!email||!pw||!pw2){
+
+    errEl.textContent=
+      'すべての項目を入力してください';
+
+    return;
+  }
+
+  if(pw!==pw2){
+
+    errEl.textContent=
+      'パスワードが一致しません';
+
+    return;
+  }
+
+  if(pw.length<6){
+
+    errEl.textContent=
+      'パスワードは6文字以上にしてください';
+
+    return;
+  }
+
   try{
+
     isNewUser=true;
-    await createUserWithEmailAndPassword(auth,email,pw);
-    // onAuthStateChanged → pg-profile-set へ
-  }catch(e){errEl.textContent=fbErrMsg(e.code);}
+
+    await createUserWithEmailAndPassword(
+      auth,
+      email,
+      pw
+    );
+
+  }catch(e){
+
+    errEl.textContent=
+      fbErrMsg(e.code);
+  }
 }
 
-// ════════════════════════════════
-//  パスワードリセット
-// ════════════════════════════════
-document.getElementById('btn-reset-back').onclick=()=>go('pg-login');
-document.getElementById('reset-btn').onclick=async()=>{
-  const email=document.getElementById('reset-email').value.trim();
-  const errEl=document.getElementById('reset-err');
-  const okEl=document.getElementById('reset-ok');
-  errEl.textContent='';okEl.textContent='';
-  if(!email){errEl.textContent='メールアドレスを入力してください';return;}
+
+/* ==============================
+   Password reset
+============================== */
+
+document.getElementById(
+  'btn-reset-back'
+).onclick=()=>go('pg-login');
+
+document.getElementById(
+  'reset-btn'
+).onclick=async()=>{
+
+  const email=document
+    .getElementById('reset-email')
+    .value.trim();
+
+  const errEl=document
+    .getElementById('reset-err');
+
+  const okEl=document
+    .getElementById('reset-ok');
+
+  errEl.textContent='';
+  okEl.textContent='';
+
+  if(!email){
+
+    errEl.textContent=
+      'メールアドレスを入力してください';
+
+    return;
+  }
+
   try{
-    await sendPasswordResetEmail(auth,email);
-    okEl.textContent='リセット用メールを送信しました';
-  }catch(e){errEl.textContent=fbErrMsg(e.code);}
+
+    await sendPasswordResetEmail(
+      auth,
+      email
+    );
+
+    okEl.textContent=
+      'リセット用メールを送信しました';
+
+  }catch(e){
+
+    errEl.textContent=
+      fbErrMsg(e.code);
+  }
 };
 
-// ════════════════════════════════
-//  プロフィール設定
-// ════════════════════════════════
-document.getElementById('profile-set-btn').onclick=doProfileSet;
-document.getElementById('set-nick').addEventListener('keydown',e=>{if(e.key==='Enter')doProfileSet();});
+
+/* ==============================
+   Profile
+============================== */
+
+document.getElementById(
+  'profile-set-btn'
+).onclick=doProfileSet;
+
+document.getElementById(
+  'set-nick'
+).addEventListener(
+  'keydown',
+  e=>{
+    if(e.key==='Enter')doProfileSet();
+  }
+);
+
 async function doProfileSet(){
-  const accountId=document.getElementById('set-accountid').value.trim();
-  const nick=document.getElementById('set-nick').value.trim();
-  const errEl=document.getElementById('profile-err');
-  const btn=document.getElementById('profile-set-btn');
+
+  const accountId=document
+    .getElementById('set-accountid')
+    .value.trim();
+
+  const nick=document
+    .getElementById('set-nick')
+    .value.trim();
+
+  const errEl=document
+    .getElementById('profile-err');
+
+  const btn=document
+    .getElementById('profile-set-btn');
+
   errEl.textContent='';
 
-  if(!accountId){errEl.textContent='アカウントIDは必須です';return;}
-  if(!validAccountId(accountId)){errEl.textContent='アカウントIDは英数字・_・.のみ、3文字以上で入力してください';return;}
+  if(!accountId){
+
+    errEl.textContent=
+      'アカウントIDは必須です';
+
+    return;
+  }
+
+  if(!validAccountId(accountId)){
+
+    errEl.textContent=
+      'アカウントIDは英数字・_・.のみ、3文字以上で入力してください';
+
+    return;
+  }
 
   const user=auth.currentUser;
-  if(!user){errEl.textContent='ログイン状態が確認できません。もう一度ログインしてください';return;}
+
+  if(!user){
+
+    errEl.textContent=
+      'ログイン状態が確認できません。もう一度ログインしてください';
+
+    return;
+  }
+
   myUid=user.uid;
 
-  btn.textContent='設定中...';btn.disabled=true;
-  try{
-    const idSnap=await get(ref(db,`accountIds/${accountId}`));
-    if(idSnap.exists()){errEl.textContent='このアカウントIDはすでに使われています';btn.textContent='Ecstasyをはじめる';btn.disabled=false;return;}
+  btn.textContent='設定中...';
+  btn.disabled=true;
 
-    await set(ref(db,`accounts/${myUid}`),{
-      accountId, nick:nick||'', createdAt:Date.now(), email:user.email||''
-    });
-    await set(ref(db,`accountIds/${accountId}`),myUid);
+  try{
+
+    const idSnap=await get(
+      ref(db,`accountIds/${accountId}`)
+    );
+
+    if(idSnap.exists()){
+
+      errEl.textContent=
+        'このアカウントIDはすでに使われています';
+
+      btn.textContent='Ecstasyをはじめる';
+      btn.disabled=false;
+
+      return;
+    }
+
+    await set(
+      ref(db,`accounts/${myUid}`),
+      {
+        accountId,
+        nick:nick||'',
+        createdAt:Date.now(),
+        email:user.email||''
+      }
+    );
+
+    await set(
+      ref(db,`accountIds/${accountId}`),
+      myUid
+    );
 
     myAccountId=accountId;
     myNick=nick||null;
     isNewUser=false;
+
     enterApp();
+
   }catch(e){
-    errEl.textContent='エラー: '+e.message;
-    btn.textContent='Ecstasyをはじめる';btn.disabled=false;
+
+    errEl.textContent=
+      'エラー: '+e.message;
+
+    btn.textContent='Ecstasyをはじめる';
+    btn.disabled=false;
   }
 }
 
-// ════════════════════════════════
-//  アプリ開始
-// ════════════════════════════════
+
+/* ==============================
+   Enter app
+============================== */
+
 function enterApp(){
+
   const name=displayName();
-  document.getElementById('badge-list').textContent=name;
-  document.getElementById('badge-thread').textContent=name;
+
+  document.getElementById(
+    'badge-list'
+  ).textContent=name;
+
+  document.getElementById(
+    'badge-thread'
+  ).textContent=name;
+
   go('pg-list');
+
   initList();
 }
 
-// ════════════════════════════════
-//  管理者ログイン
-// ════════════════════════════════
-document.getElementById('admin-pin-set-back').onclick=async()=>{await signOut(auth);go('pg-start');};
-document.getElementById('admin-pin-set-input').addEventListener('keydown',e=>{if(e.key==='Enter')stepAdminPinSet();});
-document.getElementById('admin-pin-set-btn').onclick=stepAdminPinSet;
+
+/* ==============================
+   Admin
+============================== */
+
+document.getElementById(
+  'admin-pin-set-back'
+).onclick=async()=>{
+
+  await signOut(auth);
+  go('pg-start');
+};
+
+document.getElementById(
+  'admin-pin-set-input'
+).addEventListener(
+  'keydown',
+  e=>{
+    if(e.key==='Enter')stepAdminPinSet();
+  }
+);
+
+document.getElementById(
+  'admin-pin-set-btn'
+).onclick=stepAdminPinSet;
+
 async function stepAdminPinSet(){
-  const pin=document.getElementById('admin-pin-set-input').value.trim();
-  document.getElementById('admin-pin-set-err').textContent='';
-  if(!/^\d{3}$/.test(pin)){document.getElementById('admin-pin-set-err').textContent='3桁の数字を入力してください';return;}
-  await set(ref(db,'admin/pin'),pin);
-  go('pg-admin');loadAdmin();
+
+  if(!isAdmin()){
+
+    await signOut(auth);
+    return;
+  }
+
+  const pin=document
+    .getElementById('admin-pin-set-input')
+    .value.trim();
+
+  const err=document
+    .getElementById('admin-pin-set-err');
+
+  err.textContent='';
+
+  if(!/^\d{3}$/.test(pin)){
+
+    err.textContent=
+      '3桁の数字を入力してください';
+
+    return;
+  }
+
+  await set(
+    ref(db,'admin/pin'),
+    pin
+  );
+
+  go('pg-admin');
+  loadAdmin();
 }
 
-document.getElementById('admin-pin-back').onclick=async()=>{await signOut(auth);go('pg-start');};
-document.getElementById('admin-pin-input').addEventListener('keydown',e=>{if(e.key==='Enter')stepAdminPin();});
-document.getElementById('admin-pin-btn').onclick=stepAdminPin;
+
+document.getElementById(
+  'admin-pin-back'
+).onclick=async()=>{
+
+  await signOut(auth);
+  go('pg-start');
+};
+
+document.getElementById(
+  'admin-pin-input'
+).addEventListener(
+  'keydown',
+  e=>{
+    if(e.key==='Enter')stepAdminPin();
+  }
+);
+
+document.getElementById(
+  'admin-pin-btn'
+).onclick=stepAdminPin;
+
 async function stepAdminPin(){
-  const pin=document.getElementById('admin-pin-input').value.trim();
-  document.getElementById('admin-pin-err').textContent='';
-  if(!/^\d{3}$/.test(pin)){document.getElementById('admin-pin-err').textContent='3桁の数字を入力してください';return;}
-  const snap=await get(ref(db,'admin/pin'));
-  if(!snap.exists()||snap.val()!==pin){document.getElementById('admin-pin-err').textContent='PINが違います';return;}
-  go('pg-admin');loadAdmin();
+
+  if(!isAdmin()){
+
+    await signOut(auth);
+    return;
+  }
+
+  const pin=document
+    .getElementById('admin-pin-input')
+    .value.trim();
+
+  const err=document
+    .getElementById('admin-pin-err');
+
+  err.textContent='';
+
+  if(!/^\d{3}$/.test(pin)){
+
+    err.textContent=
+      '3桁の数字を入力してください';
+
+    return;
+  }
+
+  const snap=await get(
+    ref(db,'admin/pin')
+  );
+
+  if(!snap.exists()||snap.val()!==pin){
+
+    err.textContent='PINが違います';
+    return;
+  }
+
+  go('pg-admin');
+  loadAdmin();
 }
 
-document.getElementById('admin-back').onclick=async()=>{await signOut(auth);go('pg-start');};
 
-// ════════════════════════════════
-//  管理者ページ
-// ════════════════════════════════
+document.getElementById(
+  'admin-back'
+).onclick=async()=>{
+
+  await signOut(auth);
+  go('pg-start');
+};
+
+
+/* ==============================
+   Admin tabs
+============================== */
+
 window.switchTab=function(tab){
+
+  if(!isAdmin())return;
+
   adminTab=tab;
-  document.getElementById('tab-accounts').classList.toggle('on',tab==='accounts');
-  document.getElementById('tab-threads').classList.toggle('on',tab==='threads');
+
+  document.getElementById(
+    'tab-accounts'
+  ).classList.toggle(
+    'on',
+    tab==='accounts'
+  );
+
+  document.getElementById(
+    'tab-threads'
+  ).classList.toggle(
+    'on',
+    tab==='threads'
+  );
+
   loadAdmin();
 };
+
+
 function loadAdmin(){
-  const el=document.getElementById('admin-body');
-  el.innerHTML='<div class="admin-empty">読み込み中...</div>';
-  if(adminTab==='accounts') loadAdminAccounts(el);
-  else loadAdminThreads(el);
+
+  if(!isAdmin()){
+
+    signOut(auth);
+    return;
+  }
+
+  const el=document
+    .getElementById('admin-body');
+
+  el.innerHTML=
+    '<div class="admin-empty">読み込み中...</div>';
+
+  if(adminTab==='accounts')
+    loadAdminAccounts(el);
+  else
+    loadAdminThreads(el);
 }
+
+
 async function loadAdminAccounts(el){
-  const snap=await get(ref(db,'accounts'));
+
+  if(!isAdmin())return;
+
+  const snap=await get(
+    ref(db,'accounts')
+  );
+
   const data=snap.val()||{};
-  const entries=Object.entries(data).sort((a,b)=>a[1].createdAt-b[1].createdAt);
-  if(!entries.length){el.innerHTML='<div class="admin-empty">アカウントがありません</div>';return;}
+
+  const entries=
+    Object.entries(data)
+      .sort((a,b)=>
+        (a[1].createdAt||0)-
+        (b[1].createdAt||0)
+      );
+
+  if(!entries.length){
+
+    el.innerHTML=
+      '<div class="admin-empty">アカウントがありません</div>';
+
+    return;
+  }
+
   el.innerHTML='';
+
   entries.forEach(([uid,acc])=>{
-    const card=document.createElement('div');card.className='admin-card';
+
+    const card=document.createElement('div');
+
+    card.className='admin-card';
+
     card.innerHTML=`
       <div class="admin-card-id">@${esc(acc.accountId||'')}</div>
-      <div class="admin-card-row"><span class="admin-card-label">ニックネーム</span><span class="admin-card-val">${esc(acc.nick||'（未設定）')}</span></div>
-      <div class="admin-card-row"><span class="admin-card-label">メール</span><span class="admin-card-val">${esc(acc.email||'')}</span></div>
-      <div class="admin-card-row"><span class="admin-card-label">登録日時</span><span class="admin-card-val">${fmt(acc.createdAt)}</span></div>`;
-    const btnRow=document.createElement('div');btnRow.className='admin-btn-row';
-    const delBtn=document.createElement('button');delBtn.className='admin-btn black';delBtn.textContent='アカウント削除';
-    delBtn.onclick=()=>showConfirm(`@${acc.accountId} を削除しますか？`,async()=>{
-      if(acc.accountId) await remove(ref(db,`accountIds/${acc.accountId}`));
-      await remove(ref(db,`accounts/${uid}`));
-      loadAdmin();
-    });
-    btnRow.appendChild(delBtn);card.appendChild(btnRow);el.appendChild(card);
-  });
-}
-async function loadAdminThreads(el){
-  const snap=await get(ref(db,'threads'));
-  const data=snap.val()||{};
-  const entries=Object.entries(data).sort((a,b)=>(b[1].lastActivity||0)-(a[1].lastActivity||0));
-  if(!entries.length){el.innerHTML='<div class="admin-empty">スレッドがありません</div>';return;}
-  el.innerHTML='';
-  entries.forEach(([tid,t])=>{
-    const card=document.createElement('div');card.className='admin-card';
-    card.innerHTML=`
-      <div class="admin-card-id">${esc(t.title)}</div>
-      <div class="admin-card-row"><span class="admin-card-label">作成者</span><span class="admin-card-val">${esc(String(t.createdByNick||t.createdBy||''))}</span></div>
-      <div class="admin-card-row"><span class="admin-card-label">投稿数</span><span class="admin-card-val">${t.postCount||0}件</span></div>
-      <div class="admin-card-row"><span class="admin-card-label">最終活動</span><span class="admin-card-val">${fmt(t.lastActivity)}</span></div>`;
-    const btnRow=document.createElement('div');btnRow.className='admin-btn-row';
-    const viewBtn=document.createElement('button');viewBtn.className='admin-btn white';viewBtn.textContent='投稿を管理';
-    viewBtn.onclick=()=>loadAdminPosts(el,tid,t.title);
-    const delBtn=document.createElement('button');delBtn.className='admin-btn black';delBtn.textContent='スレッド削除';
-    delBtn.onclick=()=>showConfirm(`「${t.title}」を削除しますか？`,async()=>{
-      await remove(ref(db,`threads/${tid}`));await remove(ref(db,`posts/${tid}`));loadAdmin();
-    });
-    btnRow.appendChild(viewBtn);btnRow.appendChild(delBtn);card.appendChild(btnRow);el.appendChild(card);
-  });
-}
-async function loadAdminPosts(el,tid,title){
-  el.innerHTML='<div class="admin-empty">読み込み中...</div>';
-  const snap=await get(ref(db,`posts/${tid}`));
-  const data=snap.val()||{};
-  const entries=Object.entries(data).sort((a,b)=>(a[1].ts||0)-(b[1].ts||0));
-  const backRow=document.createElement('div');backRow.className='admin-section-back';
-  const backBtn=document.createElement('button');backBtn.textContent='← 戻る';
-  backBtn.onclick=()=>loadAdminThreads(el);
-  backRow.appendChild(backBtn);
-  backRow.appendChild(document.createTextNode(' '+title+' の投稿'));
-  el.innerHTML='';el.appendChild(backRow);
-  if(!entries.length){const emp=document.createElement('div');emp.className='admin-empty';emp.textContent='投稿がありません';el.appendChild(emp);return;}
-  entries.forEach(([pid,post],i)=>{
-    const card=document.createElement('div');card.className='admin-card';
-    const preview=post.text?(post.text.length>80?post.text.slice(0,80)+'…':post.text):'（画像投稿）';
-    card.innerHTML=`
-      <div class="admin-card-row"><span class="admin-card-label">No.${i+1}</span><span class="admin-card-val" style="font-weight:700">${esc(post.userNick||post.userId)}</span></div>
-      <div class="admin-card-row"><span class="admin-card-label">内容</span><span class="admin-card-val">${esc(preview)}</span></div>
-      <div class="admin-card-row"><span class="admin-card-label">日時</span><span class="admin-card-val">${fmt(post.ts)}</span></div>`;
-    const btnRow=document.createElement('div');btnRow.className='admin-btn-row';
-    const delBtn=document.createElement('button');delBtn.className='admin-btn black';delBtn.textContent='投稿削除';
-    delBtn.onclick=()=>showConfirm('この投稿を削除しますか？',async()=>{
-      await remove(ref(db,`posts/${tid}/${pid}`));
-      const tsnap=await get(ref(db,`threads/${tid}`));
-      if(tsnap.exists())await update(ref(db,`threads/${tid}`),{postCount:Math.max(0,(tsnap.val().postCount||1)-1)});
-      loadAdminPosts(el,tid,title);
-    });
-    btnRow.appendChild(delBtn);card.appendChild(btnRow);el.appendChild(card);
+      <div class="admin-card-row">
+        <span class="admin-card-label">ニックネーム</span>
+        <span class="admin-card-val">${esc(acc.nick||'（未設定）')}</span>
+      </div>
+      <div class="admin-card-row">
+        <span class="admin-card-label">メール</span>
+        <span class="admin-card-val">${esc(acc.email||'')}</span>
+      </div>
+      <div class="admin-card-row">
+        <span class="admin-card-label">登録日時</span>
+        <span class="admin-card-val">${fmt(acc.createdAt)}</span>
+      </div>`;
+
+    const btnRow=document.createElement('div');
+
+    btnRow.className='admin-btn-row';
+
+    const delBtn=document.createElement('button');
+
+    delBtn.className='admin-btn black';
+    delBtn.textContent='アカウント削除';
+
+    delBtn.onclick=()=>showConfirm(
+      `@${acc.accountId} を削除しますか？`,
+      async()=>{
+
+        if(!isAdmin())return;
+
+        if(acc.accountId){
+
+          await remove(
+            ref(
+              db,
+              `accountIds/${acc.accountId}`
+            )
+          );
+        }
+
+        await remove(
+          ref(
+            db,
+            `accounts/${uid}`
+          )
+        );
+
+        loadAdmin();
+      }
+    );
+
+    btnRow.appendChild(delBtn);
+    card.appendChild(btnRow);
+    el.appendChild(card);
   });
 }
 
-// ════════════════════════════════
-//  スレッド一覧
-// ════════════════════════════════
-function initList(){
-  document.getElementById('sync-lbl').textContent='✅ 同期中';
-  onValue(ref(db,'threads'),snap=>{
-    const data=snap.val()||{};
-    const now=Date.now(),week=7*24*60*60*1000;
-    Object.entries(data).forEach(([tid,t])=>{
-      if(now-(t.lastActivity||t.createdAt||0)>week){
-        remove(ref(db,`threads/${tid}`));remove(ref(db,`posts/${tid}`));delete data[tid];
+
+async function loadAdminThreads(el){
+
+  if(!isAdmin())return;
+
+  const snap=await get(
+    ref(db,'threads')
+  );
+
+  const data=snap.val()||{};
+
+  const entries=
+    Object.entries(data)
+      .sort((a,b)=>
+        (b[1].lastActivity||0)-
+        (a[1].lastActivity||0)
+      );
+
+  if(!entries.length){
+
+    el.innerHTML=
+      '<div class="admin-empty">スレッドがありません</div>';
+
+    return;
+  }
+
+  el.innerHTML='';
+
+  entries.forEach(([tid,t])=>{
+
+    const card=document.createElement('div');
+
+    card.className='admin-card';
+
+    card.innerHTML=`
+      <div class="admin-card-id">${esc(t.title)}</div>
+      <div class="admin-card-row">
+        <span class="admin-card-label">作成者</span>
+        <span class="admin-card-val">${esc(String(t.createdByNick||t.createdBy||''))}</span>
+      </div>
+      <div class="admin-card-row">
+        <span class="admin-card-label">投稿数</span>
+        <span class="admin-card-val">${t.postCount||0}件</span>
+      </div>
+      <div class="admin-card-row">
+        <span class="admin-card-label">最終活動</span>
+        <span class="admin-card-val">${fmt(t.lastActivity)}</span>
+      </div>`;
+
+    const btnRow=document.createElement('div');
+
+    btnRow.className='admin-btn-row';
+
+    const viewBtn=document.createElement('button');
+
+    viewBtn.className='admin-btn white';
+    viewBtn.textContent='投稿を管理';
+
+    viewBtn.onclick=()=>loadAdminPosts(
+      el,
+      tid,
+      t.title
+    );
+
+    const delBtn=document.createElement('button');
+
+    delBtn.className='admin-btn black';
+    delBtn.textContent='スレッド削除';
+
+    delBtn.onclick=()=>showConfirm(
+      `「${t.title}」を削除しますか？`,
+      async()=>{
+
+        if(!isAdmin())return;
+
+        await remove(
+          ref(db,`threads/${tid}`)
+        );
+
+        await remove(
+          ref(db,`posts/${tid}`)
+        );
+
+        loadAdmin();
       }
-    });
-    renderList(data);
+    );
+
+    btnRow.appendChild(viewBtn);
+    btnRow.appendChild(delBtn);
+
+    card.appendChild(btnRow);
+    el.appendChild(card);
   });
 }
-function renderList(data){
-  const el=document.getElementById('thread-list');
-  const entries=Object.entries(data).sort((a,b)=>(b[1].lastActivity||0)-(a[1].lastActivity||0));
-  if(!entries.length){el.innerHTML='<div class="list-empty">スレッドがありません<br>右下の ＋ から作成できます</div>';return;}
+
+
+async function loadAdminPosts(el,tid,title){
+
+  if(!isAdmin())return;
+
+  el.innerHTML=
+    '<div class="admin-empty">読み込み中...</div>';
+
+  const snap=await get(
+    ref(db,`posts/${tid}`)
+  );
+
+  const data=snap.val()||{};
+
+  const entries=
+    Object.entries(data)
+      .sort((a,b)=>
+        (a[1].ts||0)-
+        (b[1].ts||0)
+      );
+
+  const backRow=document.createElement('div');
+
+  backRow.className=
+    'admin-section-back';
+
+  const backBtn=document.createElement('button');
+
+  backBtn.textContent='← 戻る';
+
+  backBtn.onclick=()=>loadAdminThreads(el);
+
+  backRow.appendChild(backBtn);
+
+  backRow.appendChild(
+    document.createTextNode(
+      ' '+title+' の投稿'
+    )
+  );
+
   el.innerHTML='';
-  const icons=['💬','📢','🔥','✨','📝','🎯','💡','🌟'];
+  el.appendChild(backRow);
+
+  if(!entries.length){
+
+    const emp=document.createElement('div');
+
+    emp.className='admin-empty';
+    emp.textContent='投稿がありません';
+
+    el.appendChild(emp);
+
+    return;
+  }
+
+  entries.forEach(([pid,post],i)=>{
+
+    const card=document.createElement('div');
+
+    card.className='admin-card';
+
+    const preview=
+      post.text
+        ? (
+          post.text.length>80
+            ? post.text.slice(0,80)+'…'
+            : post.text
+        )
+        : '（画像投稿）';
+
+    card.innerHTML=`
+      <div class="admin-card-row">
+        <span class="admin-card-label">No.${i+1}</span>
+        <span class="admin-card-val" style="font-weight:700">
+          ${esc(post.userNick||post.userId||'')}
+        </span>
+      </div>
+      <div class="admin-card-row">
+        <span class="admin-card-label">内容</span>
+        <span class="admin-card-val">${esc(preview)}</span>
+      </div>
+      <div class="admin-card-row">
+        <span class="admin-card-label">日時</span>
+        <span class="admin-card-val">${fmt(post.ts)}</span>
+      </div>`;
+
+    const btnRow=document.createElement('div');
+
+    btnRow.className='admin-btn-row';
+
+    const delBtn=document.createElement('button');
+
+    delBtn.className='admin-btn black';
+    delBtn.textContent='投稿削除';
+
+    delBtn.onclick=()=>showConfirm(
+      'この投稿を削除しますか？',
+      async()=>{
+
+        if(!isAdmin())return;
+
+        await remove(
+          ref(
+            db,
+            `posts/${tid}/${pid}`
+          )
+        );
+
+        const tsnap=await get(
+          ref(db,`threads/${tid}`)
+        );
+
+        if(tsnap.exists()){
+
+          await update(
+            ref(db,`threads/${tid}`),
+            {
+              postCount:
+                Math.max(
+                  0,
+                  (tsnap.val().postCount||1)-1
+                )
+            }
+          );
+        }
+
+        loadAdminPosts(
+          el,
+          tid,
+          title
+        );
+      }
+    );
+
+    btnRow.appendChild(delBtn);
+
+    card.appendChild(btnRow);
+    el.appendChild(card);
+  });
+}
+
+
+/* ==============================
+   Thread list
+============================== */
+
+function initList(){
+
+  document.getElementById(
+    'sync-lbl'
+  ).textContent='✅ 同期中';
+
+  onValue(
+    ref(db,'threads'),
+    snap=>{
+
+      const data=snap.val()||{};
+
+      const now=Date.now();
+
+      const week=
+        7*24*60*60*1000;
+
+      Object.entries(data)
+        .forEach(([tid,t])=>{
+
+          if(
+            now-
+            (t.lastActivity||
+             t.createdAt||
+             0)>week
+          ){
+
+            remove(
+              ref(db,`threads/${tid}`)
+            );
+
+            remove(
+              ref(db,`posts/${tid}`)
+            );
+
+            delete data[tid];
+          }
+        });
+
+      renderList(data);
+    }
+  );
+}
+
+
+function renderList(data){
+
+  const el=document
+    .getElementById('thread-list');
+
+  const entries=
+    Object.entries(data)
+      .sort((a,b)=>
+        (b[1].lastActivity||0)-
+        (a[1].lastActivity||0)
+      );
+
+  if(!entries.length){
+
+    el.innerHTML=
+      '<div class="list-empty">スレッドがありません<br>右下の ＋ から作成できます</div>';
+
+    return;
+  }
+
+  el.innerHTML='';
+
+  const icons=[
+    '💬','📢','🔥','✨',
+    '📝','🎯','💡','🌟'
+  ];
+
   entries.forEach(([tid,t])=>{
-    const d=document.createElement('div');d.className='th-item';
-    const ic=icons[String(tid).split('').reduce((a,c)=>a+c.charCodeAt(0),0)%icons.length];
+
+    const d=document.createElement('div');
+
+    d.className='th-item';
+
+    const ic=
+      icons[
+        String(tid)
+          .split('')
+          .reduce(
+            (a,c)=>a+c.charCodeAt(0),
+            0
+          )%icons.length
+      ];
+
     d.innerHTML=`
       <div class="th-icon">${ic}</div>
       <div class="th-info">
         <div class="th-title">${esc(t.title)}</div>
-        <div class="th-meta">${fmt(t.createdAt)} · by ${esc(String(t.createdByNick||t.createdBy||''))}</div>
+        <div class="th-meta">
+          ${fmt(t.createdAt)} · by
+          ${esc(String(t.createdByNick||t.createdBy||''))}
+        </div>
       </div>
-      <div class="th-right"><div class="th-count">${t.postCount||0}件</div><div class="th-arrow">›</div></div>`;
-    d.onclick=()=>enterThread(tid,t.title);
+      <div class="th-right">
+        <div class="th-count">${t.postCount||0}件</div>
+        <div class="th-arrow">›</div>
+      </div>`;
+
+    d.onclick=()=>enterThread(
+      tid,
+      t.title
+    );
+
+    /* 自分が作ったスレッドだけ削除UI */
     if(t.createdByUid===myUid){
-      longPress(d,()=>showConfirm(`「${t.title}」を削除しますか？\n（投稿もすべて削除されます）`,async()=>{
-        await remove(ref(db,`threads/${tid}`));await remove(ref(db,`posts/${tid}`));
-      }));
+
+      longPress(
+        d,
+        ()=>showConfirm(
+          `「${t.title}」を削除しますか？\n（投稿もすべて削除されます）`,
+          async()=>{
+
+            if(t.createdByUid!==myUid)
+              return;
+
+            await remove(
+              ref(db,`threads/${tid}`)
+            );
+
+            await remove(
+              ref(db,`posts/${tid}`)
+            );
+          }
+        )
+      );
     }
+
     el.appendChild(d);
   });
 }
-document.getElementById('fab').onclick=()=>{
-  document.getElementById('modal-wrap').classList.add('on');
-  setTimeout(()=>document.getElementById('thread-title-inp').focus(),100);
+
+
+/* ==============================
+   Create thread
+============================== */
+
+document.getElementById(
+  'fab'
+).onclick=()=>{
+
+  document.getElementById(
+    'modal-wrap'
+  ).classList.add('on');
+
+  setTimeout(
+    ()=>{
+      document.getElementById(
+        'thread-title-inp'
+      ).focus();
+    },
+    100
+  );
 };
-document.getElementById('modal-cancel').onclick=closeModal;
-document.getElementById('modal-wrap').onclick=e=>{if(e.target===document.getElementById('modal-wrap'))closeModal();};
-document.getElementById('thread-title-inp').addEventListener('keydown',e=>{if(e.key==='Enter')doCreate();});
-document.getElementById('modal-ok').onclick=doCreate;
-function closeModal(){document.getElementById('modal-wrap').classList.remove('on');document.getElementById('thread-title-inp').value='';}
+
+document.getElementById(
+  'modal-cancel'
+).onclick=closeModal;
+
+document.getElementById(
+  'modal-wrap'
+).onclick=e=>{
+
+  if(
+    e.target===
+    document.getElementById('modal-wrap')
+  )
+    closeModal();
+};
+
+document.getElementById(
+  'thread-title-inp'
+).addEventListener(
+  'keydown',
+  e=>{
+    if(e.key==='Enter')doCreate();
+  }
+);
+
+document.getElementById(
+  'modal-ok'
+).onclick=doCreate;
+
+function closeModal(){
+
+  document.getElementById(
+    'modal-wrap'
+  ).classList.remove('on');
+
+  document.getElementById(
+    'thread-title-inp'
+  ).value='';
+}
+
 async function doCreate(){
-  const title=document.getElementById('thread-title-inp').value.trim();
-  if(!title){alert('タイトルを入力してください');return;}
+
+  const title=document
+    .getElementById('thread-title-inp')
+    .value.trim();
+
+  if(!title){
+
+    alert('タイトルを入力してください');
+    return;
+  }
+
+  if(!auth.currentUser){
+
+    alert('ログインしてください');
+    return;
+  }
+
   const now=Date.now();
-  await push(ref(db,'threads'),{title,createdBy:displayName(),createdByUid:myUid,createdByNick:displayName(),createdAt:now,lastActivity:now,postCount:0});
+
+  await push(
+    ref(db,'threads'),
+    {
+      title,
+      createdBy:displayName(),
+      createdByUid:myUid,
+      createdByNick:displayName(),
+      createdAt:now,
+      lastActivity:now,
+      postCount:0
+    }
+  );
+
   closeModal();
 }
 
-// ════════════════════════════════
-//  スレッド内
-// ════════════════════════════════
+
+/* ==============================
+   Thread
+============================== */
+
 function enterThread(tid,title){
-  curTid=tid;replyTo=null;pendingImg=null;
-  document.getElementById('thread-ttl').textContent=title;
-  document.getElementById('reply-bar').classList.remove('on');
-  document.getElementById('img-prev-wrap').classList.remove('on');
-  document.getElementById('img-btn').classList.remove('on');
-  document.getElementById('post-input').value='';
-  document.getElementById('posts-area').innerHTML='<div class="list-empty">読み込み中...</div>';
+
+  curTid=tid;
+  replyTo=null;
+  pendingImg=null;
+
+  document.getElementById(
+    'thread-ttl'
+  ).textContent=title;
+
+  document.getElementById(
+    'reply-bar'
+  ).classList.remove('on');
+
+  document.getElementById(
+    'img-prev-wrap'
+  ).classList.remove('on');
+
+  document.getElementById(
+    'img-btn'
+  ).classList.remove('on');
+
+  document.getElementById(
+    'post-input'
+  ).value='';
+
+  document.getElementById(
+    'posts-area'
+  ).innerHTML=
+    '<div class="list-empty">読み込み中...</div>';
+
   go('pg-thread');
-  onValue(ref(db,`posts/${tid}`),snap=>{
-    if(curTid!==tid)return;
-    renderPosts(snap.val()||{});
-  });
+
+  onValue(
+    ref(db,`posts/${tid}`),
+    snap=>{
+
+      if(curTid!==tid)return;
+
+      renderPosts(
+        snap.val()||{}
+      );
+    }
+  );
 }
-document.getElementById('btn-back').onclick=()=>{curTid=null;replyTo=null;pendingImg=null;go('pg-list');};
+
+
+document.getElementById(
+  'btn-back'
+).onclick=()=>{
+
+  curTid=null;
+  replyTo=null;
+  pendingImg=null;
+
+  go('pg-list');
+};
+
+
+/* ==============================
+   Render posts
+============================== */
 
 function renderPosts(data){
-  const area=document.getElementById('posts-area');
-  const entries=Object.entries(data).sort((a,b)=>(a[1].ts||0)-(b[1].ts||0));
-  const atBot=area.scrollHeight-area.scrollTop-area.clientHeight<100;
-  if(!entries.length){area.innerHTML='<div class="list-empty">まだ投稿はありません<br>下の入力欄から投稿できます</div>';return;}
+
+  const area=document
+    .getElementById('posts-area');
+
+  const entries=
+    Object.entries(data)
+      .sort((a,b)=>
+        (a[1].ts||0)-
+        (b[1].ts||0)
+      );
+
+  const atBot=
+    area.scrollHeight-
+    area.scrollTop-
+    area.clientHeight<100;
+
+  if(!entries.length){
+
+    area.innerHTML=
+      '<div class="list-empty">まだ投稿はありません<br>下の入力欄から投稿できます</div>';
+
+    return;
+  }
+
   area.innerHTML='';
-  entries.forEach(([pid,post],i)=>area.appendChild(mkPost(pid,post,i+1,data)));
-  if(atBot)area.scrollTop=area.scrollHeight;
-  if(replyTo){const el=document.getElementById('p-'+replyTo.pid);if(el)el.classList.add('replying');}
+
+  entries.forEach(
+    ([pid,post],i)=>
+      area.appendChild(
+        mkPost(
+          pid,
+          post,
+          i+1,
+          data
+        )
+      )
+  );
+
+  if(atBot)
+    area.scrollTop=area.scrollHeight;
+
+  if(replyTo){
+
+    const el=document.getElementById(
+      'p-'+replyTo.pid
+    );
+
+    if(el)
+      el.classList.add('replying');
+  }
 }
+
+
+/* ==============================
+   Make post
+============================== */
+
 function mkPost(pid,post,num,all){
-  const div=document.createElement('div');div.className='post';div.id='p-'+pid;
-  const isMe=post.uid===myUid;
-  const name=post.userNick||post.userId||'名無し';
-  const c=col(post.uid||post.userId||'');
-  const hdr=document.createElement('div');hdr.className='post-hdr';
+
+  const div=document.createElement('div');
+
+  div.className='post';
+  div.id='p-'+pid;
+
+  const isMe=
+    post.uid===myUid;
+
+  const name=
+    post.userNick||
+    post.userId||
+    '名無し';
+
+  const c=col(
+    post.uid||
+    post.userId||
+    ''
+  );
+
+  const hdr=document.createElement('div');
+
+  hdr.className='post-hdr';
+
   hdr.innerHTML=`
-    <div class="p-av" style="background:${c}">${String(name).slice(0,3)}</div>
+    <div class="p-av" style="background:${c}">
+      ${esc(String(name).slice(0,3))}
+    </div>
     <span class="p-id">${esc(name)}</span>
     <span class="p-num">No.${num}</span>
-    ${isMe?'<span class="p-hint">（長押しで削除）</span>':''}
+    ${
+      isMe
+        ? '<span class="p-hint">（長押しで削除）</span>'
+        : ''
+    }
     <span class="p-time">${fmt(post.ts)}</span>`;
+
   div.appendChild(hdr);
+
+
   if(post.replyTo&&all[post.replyTo]){
+
     const o=all[post.replyTo];
-    const oname=o.userNick||o.userId||'名無し';
-    const prev=o.text?(o.text.length>60?o.text.slice(0,60)+'…':o.text):'（画像）';
-    const q=document.createElement('div');q.className='quote';
-    q.innerHTML=`<div class="q-user">${esc(oname)} より</div><div class="q-text">${esc(prev)}</div>`;
+
+    const oname=
+      o.userNick||
+      o.userId||
+      '名無し';
+
+    const prev=o.text
+      ? (
+        o.text.length>60
+          ? o.text.slice(0,60)+'…'
+          : o.text
+      )
+      : '（画像）';
+
+    const q=document.createElement('div');
+
+    q.className='quote';
+
+    q.innerHTML=`
+      <div class="q-user">
+        ${esc(oname)} より
+      </div>
+      <div class="q-text">
+        ${esc(prev)}
+      </div>`;
+
     div.appendChild(q);
   }
-  if(post.text){const b=document.createElement('div');b.className='post-body';b.textContent=post.text;div.appendChild(b);}
+
+
+  if(post.text){
+
+    const b=document.createElement('div');
+
+    b.className='post-body';
+
+    b.textContent=post.text;
+
+    div.appendChild(b);
+  }
+
+
   if(post.imageData){
-    const img=document.createElement('img');img.className='post-img';img.src=post.imageData;img.alt='';
-    img.onclick=e=>e.stopPropagation();div.appendChild(img);
+
+    const img=document.createElement('img');
+
+    img.className='post-img';
+    img.src=post.imageData;
+    img.alt='';
+
+    img.onclick=e=>
+      e.stopPropagation();
+
+    div.appendChild(img);
   }
-  const likes=post.likes||{};const liked=!!likes[myUid];
-  const foot=document.createElement('div');foot.className='post-foot';
-  const lb=document.createElement('button');lb.className='like-btn'+(liked?' on':'');
-  lb.innerHTML=`<span>${liked?'❤️':'🤍'}</span><span style="margin-left:2px;font-weight:700">${Object.keys(likes).length||''}</span>`;
+
+
+  const likes=post.likes||{};
+
+  const liked=!!likes[myUid];
+
+  const foot=document.createElement('div');
+
+  foot.className='post-foot';
+
+  const lb=document.createElement('button');
+
+  lb.className=
+    'like-btn'+
+    (liked?' on':'');
+
+  lb.innerHTML=`
+    <span>${liked?'❤️':'🤍'}</span>
+    <span style="margin-left:2px;font-weight:700">
+      ${Object.keys(likes).length||''}
+    </span>`;
+
   lb.onclick=async e=>{
+
     e.stopPropagation();
-    if(liked)await remove(ref(db,`posts/${curTid}/${pid}/likes/${myUid}`));
-    else await update(ref(db,`posts/${curTid}/${pid}/likes`),{[myUid]:true});
+
+    if(!myUid)return;
+
+    if(liked){
+
+      await remove(
+        ref(
+          db,
+          `posts/${curTid}/${pid}/likes/${myUid}`
+        )
+      );
+
+    }else{
+
+      await update(
+        ref(
+          db,
+          `posts/${curTid}/${pid}/likes`
+        ),
+        {
+          [myUid]:true
+        }
+      );
+    }
   };
-  foot.appendChild(lb);div.appendChild(foot);
-  div.onclick=()=>setReply(pid,name,post.text||'（画像）');
+
+  foot.appendChild(lb);
+
+  div.appendChild(foot);
+
+
+  div.onclick=()=>setReply(
+    pid,
+    name,
+    post.text||'（画像）'
+  );
+
+
   if(isMe){
-    longPress(div,()=>showConfirm('この投稿を削除しますか？',async()=>{
-      await remove(ref(db,`posts/${curTid}/${pid}`));
-      const snap=await get(ref(db,`threads/${curTid}`));
-      if(snap.exists())await update(ref(db,`threads/${curTid}`),{postCount:Math.max(0,(snap.val().postCount||1)-1)});
-    }));
+
+    longPress(
+      div,
+      ()=>showConfirm(
+        'この投稿を削除しますか？',
+        async()=>{
+
+          if(post.uid!==myUid)
+            return;
+
+          await remove(
+            ref(
+              db,
+              `posts/${curTid}/${pid}`
+            )
+          );
+
+          const snap=await get(
+            ref(
+              db,
+              `threads/${curTid}`
+            )
+          );
+
+          if(snap.exists()){
+
+            await update(
+              ref(
+                db,
+                `threads/${curTid}`
+              ),
+              {
+                postCount:
+                  Math.max(
+                    0,
+                    (snap.val().postCount||1)-1
+                  )
+              }
+            );
+          }
+        }
+      )
+    );
   }
+
   return div;
 }
+
+
+/* ==============================
+   Reply
+============================== */
+
 function setReply(pid,name,text){
-  replyTo={pid,name,text};
-  document.getElementById('reply-prev').textContent=`${name}：${text.length>40?text.slice(0,40)+'…':text}`;
-  document.getElementById('reply-bar').classList.add('on');
-  document.querySelectorAll('.post').forEach(e=>e.classList.remove('replying'));
-  const t=document.getElementById('p-'+pid);if(t)t.classList.add('replying');
-  document.getElementById('post-input').focus();
+
+  replyTo={
+    pid,
+    name,
+    text
+  };
+
+  document.getElementById(
+    'reply-prev'
+  ).textContent=
+    `${name}：${
+      text.length>40
+        ? text.slice(0,40)+'…'
+        : text
+    }`;
+
+  document.getElementById(
+    'reply-bar'
+  ).classList.add('on');
+
+  document.querySelectorAll('.post')
+    .forEach(
+      e=>e.classList.remove('replying')
+    );
+
+  const t=document.getElementById(
+    'p-'+pid
+  );
+
+  if(t)
+    t.classList.add('replying');
+
+  document.getElementById(
+    'post-input'
+  ).focus();
 }
-document.getElementById('reply-cancel').onclick=()=>{
-  replyTo=null;document.getElementById('reply-bar').classList.remove('on');
-  document.querySelectorAll('.post').forEach(e=>e.classList.remove('replying'));
-};
-document.getElementById('img-btn').onclick=()=>{
-  if(getDayCount()>=IMG_LIMIT){alert(`画像は1日${IMG_LIMIT}枚まで`);return;}
-  document.getElementById('img-file').click();
-};
-document.getElementById('img-file').onchange=async e=>{
-  const f=e.target.files[0];if(!f)return;e.target.value='';
-  try{
-    pendingImg=await compress(f);
-    document.getElementById('img-prev').src=pendingImg;
-    document.getElementById('img-prev-wrap').classList.add('on');
-    document.getElementById('img-btn').classList.add('on');
-  }catch{alert('画像の読み込みに失敗しました');}
-};
-document.getElementById('img-prev-del').onclick=()=>{
-  pendingImg=null;
-  document.getElementById('img-prev-wrap').classList.remove('on');
-  document.getElementById('img-btn').classList.remove('on');
-};
-document.getElementById('post-input').addEventListener('keydown',e=>{
-  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doPost();}
-});
-document.getElementById('post-input').addEventListener('input',function(){
-  this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px';
-});
-document.getElementById('send-btn').onclick=doPost;
-async function doPost(){
-  const inp=document.getElementById('post-input');
-  const text=inp.value.trim();
-  if(!text&&!pendingImg)return;
-  if(!curTid)return;
-  if(pendingImg&&getDayCount()>=IMG_LIMIT){alert(`画像は1日${IMG_LIMIT}枚まで`);return;}
-  inp.value='';inp.style.height='auto';
-  const now=Date.now();
-  const data={uid:myUid,userId:myAccountId,userNick:displayName(),text:text||'',ts:now};
-  if(replyTo)data.replyTo=replyTo.pid;
-  if(pendingImg){
-    data.imageData=pendingImg;incDayCount();pendingImg=null;
-    document.getElementById('img-prev-wrap').classList.remove('on');
-    document.getElementById('img-btn').classList.remove('on');
-  }
-  await push(ref(db,`posts/${curTid}`),data);
-  const snap=await get(ref(db,`threads/${curTid}`));
-  if(snap.exists())await update(ref(db,`threads/${curTid}`),{lastActivity:now,postCount:(snap.val().postCount||0)+1});
+
+
+document.getElementById(
+  'reply-cancel'
+).onclick=()=>{
+
   replyTo=null;
-  document.getElementById('reply-bar').classList.remove('on');
-  document.querySelectorAll('.post').forEach(e=>e.classList.remove('replying'));
+
+  document.getElementById(
+    'reply-bar'
+  ).classList.remove('on');
+
+  document.querySelectorAll('.post')
+    .forEach(
+      e=>e.classList.remove('replying')
+    );
+};
+
+
+/* ==============================
+   Images
+============================== */
+
+document.getElementById(
+  'img-btn'
+).onclick=()=>{
+
+  if(getDayCount()>=IMG_LIMIT){
+
+    alert(
+      `画像は1日${IMG_LIMIT}枚まで`
+    );
+
+    return;
+  }
+
+  document.getElementById(
+    'img-file'
+  ).click();
+};
+
+
+document.getElementById(
+  'img-file'
+).onchange=async e=>{
+
+  const f=e.target.files[0];
+
+  if(!f)return;
+
+  e.target.value='';
+
+  try{
+
+    pendingImg=await compress(f);
+
+    document.getElementById(
+      'img-prev'
+    ).src=pendingImg;
+
+    document.getElementById(
+      'img-prev-wrap'
+    ).classList.add('on');
+
+    document.getElementById(
+      'img-btn'
+    ).classList.add('on');
+
+  }catch{
+
+    alert(
+      '画像の読み込みに失敗しました'
+    );
+  }
+};
+
+
+document.getElementById(
+  'img-prev-del'
+).onclick=()=>{
+
+  pendingImg=null;
+
+  document.getElementById(
+    'img-prev-wrap'
+  ).classList.remove('on');
+
+  document.getElementById(
+    'img-btn'
+  ).classList.remove('on');
+};
+
+
+/* ==============================
+   Post
+============================== */
+
+document.getElementById(
+  'post-input'
+).addEventListener(
+  'keydown',
+  e=>{
+
+    if(
+      e.key==='Enter'&&
+      !e.shiftKey
+    ){
+
+      e.preventDefault();
+      doPost();
+    }
+  }
+);
+
+
+document.getElementById(
+  'post-input'
+).addEventListener(
+  'input',
+  function(){
+
+    this.style.height='auto';
+
+    this.style.height=
+      Math.min(
+        this.scrollHeight,
+        100
+      )+'px';
+  }
+);
+
+
+document.getElementById(
+  'send-btn'
+).onclick=doPost;
+
+
+async function doPost(){
+
+  const inp=document
+    .getElementById('post-input');
+
+  const text=inp.value.trim();
+
+  if(!text&&!pendingImg)return;
+
+  if(!curTid)return;
+
+  if(
+    pendingImg&&
+    getDayCount()>=IMG_LIMIT
+  ){
+
+    alert(
+      `画像は1日${IMG_LIMIT}枚まで`
+    );
+
+    return;
+  }
+
+  inp.value='';
+  inp.style.height='auto';
+
+  const now=Date.now();
+
+  const data={
+    uid:myUid,
+    userId:myAccountId,
+    userNick:displayName(),
+    text:text||'',
+    ts:now
+  };
+
+  if(replyTo)
+    data.replyTo=replyTo.pid;
+
+
+  if(pendingImg){
+
+    data.imageData=pendingImg;
+
+    incDayCount();
+
+    pendingImg=null;
+
+    document.getElementById(
+      'img-prev-wrap'
+    ).classList.remove('on');
+
+    document.getElementById(
+      'img-btn'
+    ).classList.remove('on');
+  }
+
+
+  await push(
+    ref(
+      db,
+      `posts/${curTid}`
+    ),
+    data
+  );
+
+
+  const snap=await get(
+    ref(
+      db,
+      `threads/${curTid}`
+    )
+  );
+
+  if(snap.exists()){
+
+    await update(
+      ref(
+        db,
+        `threads/${curTid}`
+      ),
+      {
+        lastActivity:now,
+        postCount:
+          (snap.val().postCount||0)+1
+      }
+    );
+  }
+
+
+  replyTo=null;
+
+  document.getElementById(
+    'reply-bar'
+  ).classList.remove('on');
+
+  document.querySelectorAll('.post')
+    .forEach(
+      e=>e.classList.remove('replying')
+    );
 }
+
 </script>
 </body>
 </html>
