@@ -540,25 +540,34 @@ async function doProfileSet(){
   const accountId=document.getElementById('set-accountid').value.trim();
   const nick=document.getElementById('set-nick').value.trim();
   const errEl=document.getElementById('profile-err');
+  const btn=document.getElementById('profile-set-btn');
   errEl.textContent='';
+
   if(!accountId){errEl.textContent='アカウントIDは必須です';return;}
   if(!validAccountId(accountId)){errEl.textContent='アカウントIDは英数字・_・.のみ、3文字以上で入力してください';return;}
 
-  // IDの重複チェック
-  const idSnap=await get(ref(db,`accountIds/${accountId}`));
-  if(idSnap.exists()){errEl.textContent='このアカウントIDはすでに使われています';return;}
+  const user=auth.currentUser;
+  if(!user){errEl.textContent='ログイン状態が確認できません。もう一度ログインしてください';return;}
+  myUid=user.uid;
 
-  const newName=nick?`${nick}(@${accountId})`:`@${accountId}`;
-  await set(ref(db,`accounts/${myUid}`),{
-    accountId, nick:nick||'', createdAt:Date.now(), email:auth.currentUser?.email||''
-  });
-  // IDの予約（重複防止用）
-  await set(ref(db,`accountIds/${accountId}`),myUid);
+  btn.textContent='設定中...';btn.disabled=true;
+  try{
+    const idSnap=await get(ref(db,`accountIds/${accountId}`));
+    if(idSnap.exists()){errEl.textContent='このアカウントIDはすでに使われています';btn.textContent='Ecstasyをはじめる';btn.disabled=false;return;}
 
-  myAccountId=accountId;
-  myNick=nick||null;
-  isNewUser=false;
-  enterApp();
+    await set(ref(db,`accounts/${myUid}`),{
+      accountId, nick:nick||'', createdAt:Date.now(), email:user.email||''
+    });
+    await set(ref(db,`accountIds/${accountId}`),myUid);
+
+    myAccountId=accountId;
+    myNick=nick||null;
+    isNewUser=false;
+    enterApp();
+  }catch(e){
+    errEl.textContent='エラー: '+e.message;
+    btn.textContent='Ecstasyをはじめる';btn.disabled=false;
+  }
 }
 
 // ════════════════════════════════
