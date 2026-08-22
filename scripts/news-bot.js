@@ -1,3 +1,4 @@
+// scripts/news-bot.js
 import fetch from 'node-fetch';
 import { parseStringPromise } from 'xml2js';
 
@@ -8,21 +9,8 @@ const CONFIG = {
   // 1記事につき最低2つの出典
   MIN_SOURCES: 2,
 
-  // メインモデル
+  // 使用するGeminiモデル
   MODEL: 'gemini-3.6-flash',
-
-  // フォールバックモデル
-  FALLBACK_MODEL: 'gemini-3.5-flash-lite',
-
-  // Gemini API最大リトライ回数
-  MAX_RETRIES: 4,
-
-  // Geminiへ送るRSS候補数
-  // ★30件に変更
-  MAX_CANDIDATES: 30,
-
-  // GeminiのJSON再生成回数
-  MAX_JSON_RETRIES: 1,
 
   // ニュース候補を集めるRSS
   RSS_FEEDS: [
@@ -86,16 +74,13 @@ if (
 ========================================================= */
 
 async function getFirebaseToken() {
-
   const res = await fetch(
     `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`,
     {
       method: 'POST',
-
       headers: {
         'Content-Type': 'application/json'
       },
-
       body: JSON.stringify({
         email: NEWSBOT_EMAIL,
         password: NEWSBOT_PASSWORD,
@@ -106,11 +91,9 @@ async function getFirebaseToken() {
 
   const data = await res.json();
 
-  if (!res.ok || !data.idToken) {
-
+  if (!data.idToken) {
     throw new Error(
-      'Firebase Auth失敗: ' +
-      JSON.stringify(data)
+      'Firebase Auth失敗: ' + JSON.stringify(data)
     );
   }
 
@@ -125,138 +108,72 @@ async function getFirebaseToken() {
 ========================================================= */
 
 async function fetchRSS(feed) {
-
   try {
+    console.log(`📡 RSS取得: ${feed.source}`);
 
-    console.log(
-      `📡 RSS取得: ${feed.source}`
-    );
-
-    const res = await fetch(
-      feed.url,
-      {
-        headers: {
-          'User-Agent':
-            'EcstasyNewsBot/1.0'
-        }
+    const res = await fetch(feed.url, {
+      headers: {
+        'User-Agent': 'EcstasyNewsBot/1.0'
       }
-    );
+    });
 
     if (!res.ok) {
-
-      throw new Error(
-        `HTTP ${res.status}`
-      );
+      throw new Error(`HTTP ${res.status}`);
     }
 
-    const xml =
-      await res.text();
+    const xml = await res.text();
 
-    const parsed =
-      await parseStringPromise(
-        xml,
-        {
-          explicitArray: false
-        }
-      );
+    const parsed = await parseStringPromise(xml, {
+      explicitArray: false
+    });
 
-    const channel =
-      parsed.rss?.channel;
+    const channel = parsed.rss?.channel;
 
     if (!channel) {
-
-      throw new Error(
-        'RSSのパースに失敗'
-      );
+      throw new Error('RSSのパースに失敗');
     }
 
-    const rawItems =
-      channel.item;
+    const rawItems = channel.item;
 
-    const items =
-      Array.isArray(rawItems)
-        ? rawItems
-        : rawItems
-          ? [rawItems]
-          : [];
+    const items = Array.isArray(rawItems)
+      ? rawItems
+      : rawItems
+        ? [rawItems]
+        : [];
 
-    return items
-      .map(item => {
+    return items.map(item => {
+      let url = '';
 
-        let url = '';
+      if (typeof item.link === 'string') {
+        url = item.link;
+      } else if (item.link?._) {
+        url = item.link._;
+      }
 
-        if (
-          typeof item.link ===
-          'string'
-        ) {
+      let description = '';
 
-          url =
-            item.link;
+      if (typeof item.description === 'string') {
+        description = item.description;
+      } else if (item.description?._) {
+        description = item.description._;
+      }
 
-        } else if (
-          item.link?._
-        ) {
+      let pubDate = '';
 
-          url =
-            item.link._;
-        }
+      if (typeof item.pubDate === 'string') {
+        pubDate = item.pubDate;
+      }
 
-
-        let description = '';
-
-        if (
-          typeof item.description ===
-          'string'
-        ) {
-
-          description =
-            item.description;
-
-        } else if (
-          item.description?._
-        ) {
-
-          description =
-            item.description._;
-        }
-
-
-        let pubDate = '';
-
-        if (
-          typeof item.pubDate ===
-          'string'
-        ) {
-
-          pubDate =
-            item.pubDate;
-        }
-
-
-        return {
-          title:
-            item.title || '',
-
-          url,
-
-          description,
-
-          pubDate,
-
-          source:
-            feed.source
-        };
-
-      })
-
-      .filter(
-        item =>
-          item.title &&
-          item.url
-      );
+      return {
+        title: item.title || '',
+        url,
+        description,
+        pubDate,
+        source: feed.source
+      };
+    }).filter(item => item.title && item.url);
 
   } catch (error) {
-
     console.error(
       `❌ ${feed.source} 取得失敗: ${error.message}`
     );
@@ -271,20 +188,17 @@ async function fetchRSS(feed) {
 ========================================================= */
 
 async function getExistingArticles(token) {
-
   const res = await fetch(
     `${FIREBASE_DB_URL}/newsArticles.json?auth=${token}`
   );
 
   if (!res.ok) {
-
     throw new Error(
       `既存記事取得失敗: HTTP ${res.status}`
     );
   }
 
-  const data =
-    await res.json();
+  const data = await res.json();
 
   if (!data) {
     return [];
@@ -295,513 +209,59 @@ async function getExistingArticles(token) {
 
 
 /* =========================================================
-   スリープ
-========================================================= */
-
-function sleep(ms) {
-
-  return new Promise(
-    resolve =>
-      setTimeout(resolve, ms)
-  );
-}
-
-
-/* =========================================================
-   Geminiエラー情報
-========================================================= */
-
-class GeminiAPIError extends Error {
-
-  constructor(
-    message,
-    status,
-    data
-  ) {
-
-    super(message);
-
-    this.name =
-      'GeminiAPIError';
-
-    this.status =
-      status;
-
-    this.data =
-      data;
-  }
-}
-
-
-/* =========================================================
-   Gemini APIリトライ判定
-========================================================= */
-
-function shouldRetryGemini(status) {
-
-  return [
-    500,
-    502,
-    503,
-    504
-  ].includes(status);
-}
-
-
-/* =========================================================
-   429判定
-========================================================= */
-
-function isGeminiQuotaError(error) {
-
-  return (
-    error &&
-    (
-      error.status === 429 ||
-      error?.data?.error?.status ===
-        'RESOURCE_EXHAUSTED'
-    )
-  );
-}
-
-
-/* =========================================================
-   Gemini API呼び出し
-========================================================= */
-
-async function callGemini(
-  model,
-  prompt
-) {
-
-  let lastError =
-    null;
-
-  for (
-    let attempt = 1;
-    attempt <= CONFIG.MAX_RETRIES;
-    attempt++
-  ) {
-
-    try {
-
-      console.log(
-        `🤖 Gemini API実行: ${model} (${attempt}/${CONFIG.MAX_RETRIES})`
-      );
-
-      const res =
-        await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
-          {
-            method: 'POST',
-
-            headers: {
-              'Content-Type':
-                'application/json'
-            },
-
-            body:
-              JSON.stringify({
-
-                contents: [
-                  {
-                    parts: [
-                      {
-                        text:
-                          prompt
-                      }
-                    ]
-                  }
-                ],
-
-                /*
-                 * Google検索を利用
-                 */
-                tools: [
-                  {
-                    google_search: {}
-                  }
-                ],
-
-                generationConfig: {
-
-                  maxOutputTokens:
-                    7000,
-
-                  responseMimeType:
-                    'application/json'
-                }
-
-              })
-          }
-        );
-
-      const data =
-        await res.json();
-
-
-      /* ===================================================
-         成功
-      =================================================== */
-
-      if (res.ok) {
-
-        return data;
-      }
-
-
-      /* ===================================================
-         429
-         
-         ★重要
-         429はクォータ超過の可能性が高いため、
-         同じモデルを何度も叩かない。
-      =================================================== */
-
-      if (res.status === 429) {
-
-        throw new GeminiAPIError(
-          `Gemini API HTTP 429: ${JSON.stringify(data)}`,
-          429,
-          data
-        );
-      }
-
-
-      /* ===================================================
-         500系
-      =================================================== */
-
-      if (
-        shouldRetryGemini(
-          res.status
-        )
-      ) {
-
-        lastError =
-          new GeminiAPIError(
-            `Gemini API HTTP ${res.status}: ${JSON.stringify(data)}`,
-            res.status,
-            data
-          );
-
-        const waitTime =
-          Math.min(
-            30000,
-            2000 *
-              Math.pow(
-                2,
-                attempt - 1
-              )
-          );
-
-        console.warn(
-          `⚠️ Gemini ${res.status}。${waitTime / 1000}秒後に再試行します`
-        );
-
-        await sleep(
-          waitTime
-        );
-
-        continue;
-      }
-
-
-      /* ===================================================
-         その他
-      =================================================== */
-
-      throw new GeminiAPIError(
-        'Gemini API失敗: ' +
-          JSON.stringify(data),
-        res.status,
-        data
-      );
-
-    } catch (error) {
-
-      /*
-       * 429は即座に上へ返す
-       *
-       * 無料枠超過なのに4回も叩くのを防止
-       */
-
-      if (
-        isGeminiQuotaError(
-          error
-        )
-      ) {
-
-        throw error;
-      }
-
-
-      lastError =
-        error;
-
-
-      /*
-       * 通信エラー
-       */
-
-      if (
-        attempt <
-        CONFIG.MAX_RETRIES
-      ) {
-
-        const waitTime =
-          Math.min(
-            30000,
-            2000 *
-              Math.pow(
-                2,
-                attempt - 1
-              )
-          );
-
-        console.warn(
-          `⚠️ Gemini通信エラー。${waitTime / 1000}秒後に再試行します`
-        );
-
-        await sleep(
-          waitTime
-        );
-
-        continue;
-      }
-
-      break;
-    }
-  }
-
-  throw (
-    lastError ||
-    new Error(
-      'Gemini APIに接続できませんでした'
-    )
-  );
-}
-
-
-/* =========================================================
-   Geminiレスポンスから検索結果を取得
-========================================================= */
-
-function extractGroundingSources(
-  data
-) {
-
-  const sources =
-    [];
-
-  const candidates =
-    data.candidates || [];
-
-  for (
-    const candidate
-    of candidates
-  ) {
-
-    const metadata =
-      candidate.groundingMetadata;
-
-    if (!metadata) {
-      continue;
-    }
-
-    const chunks =
-      metadata.groundingChunks ||
-      [];
-
-    for (
-      const chunk
-      of chunks
-    ) {
-
-      const web =
-        chunk.web;
-
-      if (
-        web &&
-        web.uri &&
-        web.title
-      ) {
-
-        if (
-          !sources.some(
-            source =>
-              source.url ===
-              web.uri
-          )
-        ) {
-
-          sources.push({
-
-            name:
-              web.title,
-
-            url:
-              web.uri
-          });
-        }
-      }
-    }
-  }
-
-  return sources;
-}
-
-
-/* =========================================================
-   JSONクリーニング
-========================================================= */
-
-function cleanGeminiJson(
-  text
-) {
-
-  return text
-    .replace(
-      /^```json\s*/i,
-      ''
-    )
-    .replace(
-      /^```\s*/i,
-      ''
-    )
-    .replace(
-      /\s*```$/i,
-      ''
-    )
-    .trim();
-}
-
-
-/* =========================================================
    Geminiで記事生成
 ========================================================= */
 
-async function generateArticles(
-  candidates,
-  existingArticles
-) {
+async function generateArticles(candidates, existingArticles) {
 
-  const previousTitles =
-    existingArticles
-      .map(
-        article =>
-          article.title
-      )
-      .filter(Boolean)
-      .slice(-100);
+  const previousTitles = existingArticles
+    .map(article => article.title)
+    .filter(Boolean)
+    .slice(-100);
 
 
-  const candidateText =
-    candidates
-      .slice(
-        0,
-        CONFIG.MAX_CANDIDATES
-      )
-      .map(
-        (article, index) => {
+  const candidateText = candidates
+    .slice(0, 100)
+    .map((article, index) => {
+      return `
+---候補 ${index + 1}---
 
-          return `
----RSS候補 ${index + 1}---
-
-媒体:
-${article.source}
-
-タイトル:
-${article.title}
-
-公開日時:
-${article.pubDate}
-
-URL:
-${article.url}
+媒体: ${article.source}
+タイトル: ${article.title}
+公開日時: ${article.pubDate}
+URL: ${article.url}
 
 概要:
 ${article.description}
 `;
-
-        }
-      )
-      .join('\n');
+    })
+    .join('\n');
 
 
   const prompt = `
-
 あなたは「Ecstasy」という日本語SNSのニュース編集AIです。
 
-あなたの仕事は、最新のニュースをGoogle検索とRSS候補から調査し、
+以下に複数のニュースRSSから取得したニュース候補があります。
+
+これらを比較・照合し、
 日本の若者が興味を持ちそうなニュースを2件選び、
-Ecstasy用の記事として作成することです。
-
-
-==================================================
-【最重要：リアルタイム検索】
-==================================================
-
-Google検索を必ず活用してください。
-
-RSS候補だけに限定する必要はありません。
-
-RSSに存在しないニュースでも、
-Google検索で実際に確認できるニュースであれば
-記事候補として使用して構いません。
-
-ただし、必ず実際のWeb上の情報を確認してください。
-
-検索結果に存在しない情報を作らないでください。
-
+Ecstasy用の記事として作成してください。
 
 ==================================================
-【出典】
+【最重要：情報の信頼性】
 ==================================================
 
-非常に重要です。
-
-1記事につき最低2つの異なるWeb上の情報源を使用してください。
-
-可能な限り異なる報道機関を組み合わせてください。
-
-優先例：
-
-・BBC
-・Reuters
-・AP
-・The Guardian
-・CNN
-・NBC
-・ABC
-・CBS
-・Fox News
-・Sky News
-・その他の信頼できる報道機関
-
-ただし、実際に検索結果として存在する記事だけを使用してください。
-
-架空のURLは禁止です。
-
-Google検索で確認できたURLだけを
-sourcesに入れてください。
-
-
-==================================================
-【情報の信頼性】
-==================================================
-
-・架空の情報を作らない
-・検索結果に存在しない事実を追加しない
-・事実と推測を混ぜない
-・元記事をそのままコピーしない
-・自分の言葉で要約する
-・重大な内容は特に慎重に扱う
-・「逮捕」「死亡」「犯罪」「性的スキャンダル」などは、
-  信頼できる情報源で明確に確認できる場合だけ使用する
-・SNS上の未確認情報を事実として断定しない
-・可能な限り複数の報道機関で同じ出来事を確認する
-
+- 候補記事に存在する情報だけを使用してください。
+- 架空の情報を作らないでください。
+- 事実と推測を混ぜないでください。
+- 元記事の文章をそのままコピーしないでください。
+- 自分の言葉で要約してください。
+- 重大な内容は特に慎重に扱ってください。
+- 「逮捕」「死亡」「犯罪」「性的スキャンダル」などは、
+  候補情報から明確に確認できる場合だけ使用してください。
+- 噂やSNS上の未確認情報を事実として断定しないでください。
+- 同じ出来事を複数の記事が報じている場合、
+  複数の情報源を比較して共通して確認できる内容を優先してください。
 
 ==================================================
 【記事ジャンル】
@@ -822,21 +282,19 @@ sourcesに入れてください。
 ・海外の変わった文化
 ・「実は○○だった」系の意外な情報
 
-
 特に、
 
 「何それ！？」
 「どういうこと？」
 「詳しく知りたい」
 
-と思わせるニュースを優先してください。
-
+と思わせるようなニュースを優先してください。
 
 ==================================================
 【見出し】
 ==================================================
 
-SNSで目を引く見出しにしてください。
+見出しはSNSで目を引くものにしてください。
 
 例：
 
@@ -855,6 +313,7 @@ SNSで目を引く見出しにしてください。
 
 こと。
 
+「！？」などの記号は使用して構いません。
 
 ==================================================
 【本文】
@@ -862,9 +321,7 @@ SNSで目を引く見出しにしてください。
 
 1記事400〜700文字程度。
 
-自然なニュース記事として書いてください。
-
-以下を可能な範囲で含めてください。
+以下を自然な文章で説明してください。
 
 ・何が起きたのか
 ・いつ起きたのか
@@ -874,6 +331,36 @@ SNSで目を引く見出しにしてください。
 ・現在どうなっているのか
 ・必要なら背景
 
+単なる箇条書きではなく、
+読みやすいニュース記事にしてください。
+
+==================================================
+【出典】
+==================================================
+
+非常に重要です。
+
+1記事につき最低2つの異なる情報源を付けてください。
+
+同じ出来事について複数の候補記事が存在する場合、
+それらを比較して記事を作成してください。
+
+出典URLは、必ず候補として与えられたURLの中から選んでください。
+
+架空のURLを作らないでください。
+
+できれば、
+
+・BBC
+・Reuters
+・AP
+・Guardian
+・CNN
+・その他信頼できる報道機関
+
+など、異なる媒体を組み合わせてください。
+
+ただし、候補に存在しない媒体を無理に追加しないでください。
 
 ==================================================
 【過去の記事】
@@ -883,19 +370,19 @@ SNSで目を引く見出しにしてください。
 
 ${previousTitles.join('\n')}
 
-
 ==================================================
-【RSSニュース候補】
+【ニュース候補】
 ==================================================
 
 ${candidateText}
-
 
 ==================================================
 【出力形式】
 ==================================================
 
 必ずJSONのみを出力してください。
+
+JSON以外の文章、説明、前置き、Markdown、コードブロックは絶対に出力しないでください。
 
 {
   "articles": [
@@ -906,11 +393,11 @@ ${candidateText}
       "sources": [
         {
           "name": "媒体名",
-          "url": "実際に検索結果として存在するURL"
+          "url": "候補として与えられたURL"
         },
         {
           "name": "媒体名",
-          "url": "実際に検索結果として存在するURL"
+          "url": "候補として与えられたURL"
         }
       ]
     },
@@ -921,11 +408,11 @@ ${candidateText}
       "sources": [
         {
           "name": "媒体名",
-          "url": "実際に検索結果として存在するURL"
+          "url": "候補として与えられたURL"
         },
         {
           "name": "媒体名",
-          "url": "実際に検索結果として存在するURL"
+          "url": "候補として与えられたURL"
         }
       ]
     }
@@ -942,113 +429,61 @@ YouTuber・インフルエンサー
 スキャンダル
 雑学
 その他
-
 `;
 
 
-  let data;
+  /* =======================================================
+     Gemini API
+  ======================================================= */
 
-  /*
-   * ================================================
-   * メインモデル
-   * ================================================
-   */
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
 
-  try {
+        generationConfig: {
+          temperature: 0.4,
+          maxOutputTokens: 7000,
 
-    data =
-      await callGemini(
-        CONFIG.MODEL,
-        prompt
-      );
-
-  } catch (error) {
-
-    /*
-     * 429の場合
-     *
-     * メインモデルを無駄に再試行しない。
-     */
-
-    if (
-      isGeminiQuotaError(
-        error
-      )
-    ) {
-
-      console.warn(
-        `⚠️ ${CONFIG.MODEL} がクォータ制限(429)に到達しました`
-      );
-
-      console.log(
-        `🔄 フォールバックモデル ${CONFIG.FALLBACK_MODEL} を試します`
-      );
-
-    } else {
-
-      console.warn(
-        `⚠️ ${CONFIG.MODEL} が利用できません`
-      );
-
-      console.warn(
-        error.message
-      );
-
-      console.log(
-        `🔄 フォールバックモデル ${CONFIG.FALLBACK_MODEL} を試します`
-      );
+          /*
+           * GeminiにJSON形式での出力を要求
+           */
+          responseMimeType: 'application/json'
+        }
+      })
     }
+  );
 
 
-    /*
-     * ================================================
-     * フォールバック
-     * ================================================
-     */
+  const data = await res.json();
 
-    try {
 
-      data =
-        await callGemini(
-          CONFIG.FALLBACK_MODEL,
-          prompt
-        );
-
-    } catch (fallbackError) {
-
-      /*
-       * 両方429なら呼び出し元へ
-       */
-
-      if (
-        isGeminiQuotaError(
-          fallbackError
-        )
-      ) {
-
-        throw fallbackError;
-      }
-
-      throw fallbackError;
-    }
+  if (!res.ok) {
+    throw new Error(
+      'Gemini API失敗: ' +
+      JSON.stringify(data)
+    );
   }
 
 
   const text =
-    data.candidates
-      ?.[
-        0
-      ]
-      ?.content
-      ?.parts
-      ?.[
-        0
-      ]
-      ?.text;
+    data.candidates?.[0]?.content?.parts?.[0]?.text;
 
 
   if (!text) {
-
     throw new Error(
       'Geminiから記事が返されませんでした: ' +
       JSON.stringify(data)
@@ -1057,241 +492,92 @@ YouTuber・インフルエンサー
 
 
   /*
-   * Google検索による出典
+   * GeminiのJSON出力を安全に解析
    */
 
-  const groundingSources =
-    extractGroundingSources(
-      data
-    );
-
-
-  console.log(
-    `🔎 Google検索から ${groundingSources.length}件の出典候補を取得`
-  );
+  let cleaned = text.trim();
 
 
   /*
-   * JSON解析
+   * Markdownのコードブロックを除去
    */
 
-  let result;
+  cleaned = cleaned
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
 
-  const cleaned =
-    cleanGeminiJson(
-      text
-    );
+
+  /*
+   * JSONの前後に説明文が入ってしまった場合に対応
+   *
+   * 最初の { から最後の } までをJSONとして抽出する。
+   */
+
+  const firstBrace =
+    cleaned.indexOf('{');
+
+  const lastBrace =
+    cleaned.lastIndexOf('}');
+
+
+  if (
+    firstBrace !== -1 &&
+    lastBrace !== -1 &&
+    lastBrace > firstBrace
+  ) {
+    cleaned =
+      cleaned.slice(
+        firstBrace,
+        lastBrace + 1
+      );
+  }
+
+
+  let result;
 
 
   try {
 
     result =
-      JSON.parse(
-        cleaned
-      );
+      JSON.parse(cleaned);
 
   } catch (error) {
 
     console.error(
-      '⚠️ GeminiのJSON解析に失敗しました'
+      'Geminiの返答:',
+      text
     );
 
-    console.log(
-      '🔄 JSONを再生成します'
+    console.error(
+      'JSON解析対象:',
+      cleaned
     );
 
-
-    const retryPrompt =
-      `${prompt}
-
-重要：
-前回の出力はJSONとして解析できませんでした。
-
-今回は必ず有効なJSONだけを返してください。
-
-Markdownは禁止です。
-コードブロックは禁止です。
-説明文は禁止です。
-
-JSONオブジェクトだけを返してください。
-`;
-
-
-    let retryData;
-
-
-    try {
-
-      retryData =
-        await callGemini(
-          CONFIG.MODEL,
-          retryPrompt
-        );
-
-    } catch (retryError) {
-
-      /*
-       * JSON再生成でも429なら
-       * ここではさらに無限にAPIを叩かない。
-       */
-
-      if (
-        isGeminiQuotaError(
-          retryError
-        )
-      ) {
-
-        throw retryError;
-      }
-
-
-      retryData =
-        await callGemini(
-          CONFIG.FALLBACK_MODEL,
-          retryPrompt
-        );
-    }
-
-
-    const retryText =
-      retryData.candidates
-        ?.[
-          0
-        ]
-        ?.content
-        ?.parts
-        ?.[
-          0
-        ]
-        ?.text;
-
-
-    if (!retryText) {
-
-      throw new Error(
-        'Gemini再生成でも記事が返されませんでした'
-      );
-    }
-
-
-    const retryCleaned =
-      cleanGeminiJson(
-        retryText
-      );
-
-
-    try {
-
-      result =
-        JSON.parse(
-          retryCleaned
-        );
-
-    } catch {
-
-      console.error(
-        'Gemini再生成結果:',
-        retryText
-      );
-
-      throw new Error(
-        'GeminiのJSON解析に失敗しました'
-      );
-    }
+    throw new Error(
+      'GeminiのJSON解析に失敗しました'
+    );
   }
 
 
-  if (
-    !Array.isArray(
-      result.articles
-    )
-  ) {
-
+  if (!Array.isArray(result.articles)) {
     throw new Error(
       'Geminiのarticlesが配列ではありません'
     );
   }
 
 
-  /*
-   * Google検索出典を補完
-   */
-
-  for (
-    const article
-    of result.articles
-  ) {
-
-    if (
-      !Array.isArray(
-        article.sources
-      )
-    ) {
-
-      article.sources =
-        [];
-    }
-
-
-    for (
-      const source
-      of groundingSources
-    ) {
-
-      if (
-        article.sources.length >=
-        CONFIG.MIN_SOURCES
-      ) {
-
-        break;
-      }
-
-
-      if (
-        !source ||
-        !source.url
-      ) {
-
-        continue;
-      }
-
-
-      if (
-        !article.sources.some(
-          item =>
-            item &&
-            item.url ===
-            source.url
-        )
-      ) {
-
-        article.sources.push({
-
-          name:
-            source.name,
-
-          url:
-            source.url
-        });
-      }
-    }
-  }
-
-
   return result.articles
-    .filter(
-      article =>
+    .filter(article => {
+      return (
         article &&
         article.title &&
         article.summary &&
-        Array.isArray(
-          article.sources
-        )
-    )
-    .slice(
-      0,
-      CONFIG.MAX_ARTICLES
-    );
+        Array.isArray(article.sources)
+      );
+    })
+    .slice(0, CONFIG.MAX_ARTICLES);
 }
 
 
@@ -1299,102 +585,54 @@ JSONオブジェクトだけを返してください。
    出典URLの検証
 ========================================================= */
 
-function validateSources(
-  article,
-  candidates
-) {
+function validateSources(article, candidates) {
 
-  const candidateUrls =
-    new Set(
-      candidates.map(
-        item =>
-          item.url
-      )
-    );
+  const candidateUrls = new Set(
+    candidates.map(item => item.url)
+  );
 
 
-  const validSources =
-    [];
+  const validSources = [];
 
 
-  for (
-    const source
-    of article.sources
-  ) {
+  for (const source of article.sources) {
 
     if (
       !source ||
       !source.name ||
       !source.url
     ) {
-
       continue;
     }
 
 
-    let parsedUrl;
+    /*
+     * Geminiが候補にないURLを作っていないか確認
+     */
 
-    try {
-
-      parsedUrl =
-        new URL(
-          source.url
-        );
-
-    } catch {
+    if (!candidateUrls.has(source.url)) {
 
       console.log(
-        `⚠️ 不正なURLを除外: ${source.url}`
+        `⚠️ 候補に存在しないURLを除外: ${source.url}`
       );
 
       continue;
     }
 
 
-    if (
-      parsedUrl.protocol !==
-        'http:' &&
-      parsedUrl.protocol !==
-        'https:'
-    ) {
-
-      continue;
-    }
-
-
-    if (
-      candidateUrls.has(
-        source.url
-      )
-    ) {
-
-      console.log(
-        `📰 RSS出典: ${source.name}`
-      );
-
-    } else {
-
-      console.log(
-        `🌐 Web検索出典: ${source.name}`
-      );
-    }
-
+    /*
+     * 同じURLの重複を防ぐ
+     */
 
     if (
       !validSources.some(
-        item =>
-          item.url ===
-          source.url
+        item => item.url === source.url
       )
     ) {
 
       validSources.push({
-
-        name:
-          source.name,
-
-        url:
-          source.url
+        name: source.name,
+        url: source.url
       });
     }
   }
@@ -1405,31 +643,28 @@ function validateSources(
 
 
 /* =========================================================
-   通常ニュース投稿
+   Firebaseへニュース投稿
 ========================================================= */
 
-async function postToFirebase(
-  token,
-  article
-) {
+async function postToFirebase(token, article) {
 
-  const now =
-    Date.now();
+  const now = Date.now();
 
 
   const displayTitle =
     `【${article.category || 'ニュース'}】${article.title}`;
 
 
+  /*
+   * 投稿本文
+   */
+
   let postText =
     `${article.summary}\n\n` +
     `📰 出典\n`;
 
 
-  for (
-    const source
-    of article.sources
-  ) {
+  for (const source of article.sources) {
 
     postText +=
       `・${source.name}\n` +
@@ -1441,61 +676,27 @@ async function postToFirebase(
      スレッド作成
   ======================================================= */
 
-  const threadRes =
-    await fetch(
-      `${FIREBASE_DB_URL}/threads.json?auth=${token}`,
-      {
-        method: 'POST',
-
-        headers: {
-          'Content-Type':
-            'application/json'
-        },
-
-        body:
-          JSON.stringify({
-
-            title:
-              displayTitle.slice(
-                0,
-                100
-              ),
-
-            createdBy:
-              '🤖 AI NEWS',
-
-            createdByUid:
-              NEWSBOT_UID,
-
-            createdByNick:
-              '🤖 AI NEWS',
-
-            createdAt:
-              now,
-
-            lastActivity:
-              now,
-
-            postCount:
-              1,
-
-            isNewsThread:
-              true,
-
-            newsCategory:
-              article.category ||
-              'ニュース'
-          })
-      }
-    );
-
-
-  if (!threadRes.ok) {
-
-    throw new Error(
-      `スレッド作成失敗: HTTP ${threadRes.status}`
-    );
-  }
+  const threadRes = await fetch(
+    `${FIREBASE_DB_URL}/threads.json?auth=${token}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        title: displayTitle.slice(0, 100),
+        createdBy: '🤖 AI NEWS',
+        createdByUid: NEWSBOT_UID,
+        createdByNick: '🤖 AI NEWS',
+        createdAt: now,
+        lastActivity: now,
+        postCount: 1,
+        isNewsThread: true,
+        newsCategory:
+          article.category || 'ニュース'
+      })
+    }
+  );
 
 
   const threadData =
@@ -1510,9 +711,7 @@ async function postToFirebase(
 
     throw new Error(
       'スレッド作成失敗: ' +
-      JSON.stringify(
-        threadData
-      )
+      JSON.stringify(threadData)
     );
   }
 
@@ -1521,60 +720,51 @@ async function postToFirebase(
      本文投稿
   ======================================================= */
 
-  const postRes =
-    await fetch(
-      `${FIREBASE_DB_URL}/posts/${tid}.json?auth=${token}`,
-      {
-        method: 'POST',
+  const postRes = await fetch(
+    `${FIREBASE_DB_URL}/posts/${tid}.json?auth=${token}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
 
-        headers: {
-          'Content-Type':
-            'application/json'
-        },
+        uid: NEWSBOT_UID,
 
-        body:
-          JSON.stringify({
+        userId: 'ai_news',
 
-            uid:
-              NEWSBOT_UID,
+        userNick: '🤖 AI NEWS',
 
-            userId:
-              'ai_news',
+        text: postText,
 
-            userNick:
-              '🤖 AI NEWS',
+        ts: now,
 
-            text:
-              postText,
+        isNewsPost: true,
 
-            ts:
-              now,
+        /*
+         * 旧仕様との互換
+         */
 
-            isNewsPost:
-              true,
+        newsUrl:
+          article.sources[0]?.url || '',
 
-            newsUrl:
-              article.sources[0]
-                ?.url ||
-              '',
+        newsSource:
+          article.sources
+            .map(source => source.name)
+            .join(', '),
 
-            newsSource:
-              article.sources
-                .map(
-                  source =>
-                    source.name
-                )
-                .join(', '),
+        /*
+         * 複数出典
+         */
 
-            newsSources:
-              article.sources,
+        newsSources:
+          article.sources,
 
-            newsCategory:
-              article.category ||
-              'ニュース'
-          })
-      }
-    );
+        newsCategory:
+          article.category || 'ニュース'
+      })
+    }
+  );
 
 
   if (!postRes.ok) {
@@ -1586,15 +776,12 @@ async function postToFirebase(
 
 
   /* =======================================================
-     投稿済みニュース保存
+     投稿済みニュースとして保存
   ======================================================= */
 
   const sourceKey =
     article.sources
-      .map(
-        source =>
-          source.url
-      )
+      .map(source => source.url)
       .sort()
       .join('|');
 
@@ -1603,64 +790,42 @@ async function postToFirebase(
     Buffer
       .from(sourceKey)
       .toString('base64')
-      .replace(
-        /[.#$/[\]]/g,
-        '_'
-      );
+      .replace(/[.#$/[\]]/g, '_');
 
 
-  const saveRes =
-    await fetch(
-      `${FIREBASE_DB_URL}/newsArticles/${key}.json?auth=${token}`,
-      {
-        method: 'PUT',
+  await fetch(
+    `${FIREBASE_DB_URL}/newsArticles/${key}.json?auth=${token}`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
 
-        headers: {
-          'Content-Type':
-            'application/json'
-        },
+        title:
+          article.title,
 
-        body:
-          JSON.stringify({
+        url:
+          article.sources[0]?.url || '',
 
-            title:
-              article.title,
+        source:
+          article.sources
+            .map(source => source.name)
+            .join(', '),
 
-            url:
-              article.sources[0]
-                ?.url ||
-              '',
+        sources:
+          article.sources,
 
-            source:
-              article.sources
-                .map(
-                  source =>
-                    source.name
-                )
-                .join(', '),
+        category:
+          article.category || 'ニュース',
 
-            sources:
-              article.sources,
+        postedAt:
+          now,
 
-            category:
-              article.category ||
-              'ニュース',
-
-            postedAt:
-              now,
-
-            tid
-          })
-      }
-    );
-
-
-  if (!saveRes.ok) {
-
-    throw new Error(
-      `ニュース履歴保存失敗: HTTP ${saveRes.status}`
-    );
-  }
+        tid
+      })
+    }
+  );
 
 
   console.log(
@@ -1677,189 +842,6 @@ async function postToFirebase(
 
 
 /* =========================================================
-   429時の一言つぶやき
-========================================================= */
-
-const FALLBACK_MESSAGES = [
-
-  '🤖 今日はちょっと一休み。ニュースを調査中です。',
-
-  '🌎 世界では今日もいろんなことが起きているみたいです。',
-
-  '☕ ニュースを集めながら、ひと息ついています。',
-
-  '👀 面白いニュースを探しています。もう少しお待ちください。',
-
-  '🤖 EcstasyニュースBot、ただいま情報収集中です。',
-
-  '🌐 今日も世界中からニュースを探しています。',
-
-  '📰 次のニュースを準備中です。',
-
-  '🔎 面白い話題がないか世界中を探索中……',
-
-  '🤖 ニュースが届くまで少々お待ちください。',
-
-  '🌍 世界は今日も何か起こしているようです。'
-];
-
-
-/* =========================================================
-   429時のつぶやき投稿
-========================================================= */
-
-async function postFallbackTweet(
-  token
-) {
-
-  const now =
-    Date.now();
-
-
-  const message =
-    FALLBACK_MESSAGES[
-      Math.floor(
-        Math.random() *
-          FALLBACK_MESSAGES.length
-      )
-    ];
-
-
-  console.log(
-    `💬 Geminiクォータ超過のため一言投稿: ${message}`
-  );
-
-
-  /* =======================================================
-     スレッド作成
-  ======================================================= */
-
-  const threadRes =
-    await fetch(
-      `${FIREBASE_DB_URL}/threads.json?auth=${token}`,
-      {
-        method: 'POST',
-
-        headers: {
-          'Content-Type':
-            'application/json'
-        },
-
-        body:
-          JSON.stringify({
-
-            title:
-              '🤖 AI NEWS',
-
-            createdBy:
-              '🤖 AI NEWS',
-
-            createdByUid:
-              NEWSBOT_UID,
-
-            createdByNick:
-              '🤖 AI NEWS',
-
-            createdAt:
-              now,
-
-            lastActivity:
-              now,
-
-            postCount:
-              1,
-
-            isNewsThread:
-              false
-          })
-      }
-    );
-
-
-  if (!threadRes.ok) {
-
-    throw new Error(
-      `つぶやきスレッド作成失敗: HTTP ${threadRes.status}`
-    );
-  }
-
-
-  const threadData =
-    await threadRes.json();
-
-
-  const tid =
-    threadData.name;
-
-
-  if (!tid) {
-
-    throw new Error(
-      'つぶやきスレッド作成失敗: ' +
-      JSON.stringify(
-        threadData
-      )
-    );
-  }
-
-
-  /* =======================================================
-     つぶやき投稿
-  ======================================================= */
-
-  const postRes =
-    await fetch(
-      `${FIREBASE_DB_URL}/posts/${tid}.json?auth=${token}`,
-      {
-        method: 'POST',
-
-        headers: {
-          'Content-Type':
-            'application/json'
-        },
-
-        body:
-          JSON.stringify({
-
-            uid:
-              NEWSBOT_UID,
-
-            userId:
-              'ai_news',
-
-            userNick:
-              '🤖 AI NEWS',
-
-            text:
-              message,
-
-            ts:
-              now,
-
-            isNewsPost:
-              false
-          })
-      }
-    );
-
-
-  if (!postRes.ok) {
-
-    throw new Error(
-      `つぶやき投稿失敗: HTTP ${postRes.status}`
-    );
-  }
-
-
-  console.log(
-    `✅ 429時のつぶやき投稿完了`
-  );
-
-  return tid;
-}
-
-
-/* =========================================================
    メイン処理
 ========================================================= */
 
@@ -1870,22 +852,16 @@ async function main() {
   );
 
 
-  /* =======================================================
-     Firebaseログイン
-  ======================================================= */
+  /* Firebaseログイン */
 
   const token =
     await getFirebaseToken();
 
 
-  /* =======================================================
-     過去記事取得
-  ======================================================= */
+  /* 過去記事取得 */
 
   const existingArticles =
-    await getExistingArticles(
-      token
-    );
+    await getExistingArticles(token);
 
 
   console.log(
@@ -1894,22 +870,16 @@ async function main() {
 
 
   /* =======================================================
-     RSS取得
+     複数RSSからニュース候補を取得
   ======================================================= */
 
-  let allCandidates =
-    [];
+  let allCandidates = [];
 
 
-  for (
-    const feed
-    of CONFIG.RSS_FEEDS
-  ) {
+  for (const feed of CONFIG.RSS_FEEDS) {
 
     const articles =
-      await fetchRSS(
-        feed
-      );
+      await fetchRSS(feed);
 
 
     console.log(
@@ -1918,9 +888,7 @@ async function main() {
 
 
     allCandidates =
-      allCandidates.concat(
-        articles
-      );
+      allCandidates.concat(articles);
   }
 
 
@@ -1929,24 +897,15 @@ async function main() {
   );
 
 
-  /* =======================================================
-     URL重複削除
-  ======================================================= */
+  /* URL重複削除 */
 
   const uniqueMap =
     new Map();
 
 
-  for (
-    const article
-    of allCandidates
-  ) {
+  for (const article of allCandidates) {
 
-    if (
-      !uniqueMap.has(
-        article.url
-      )
-    ) {
+    if (!uniqueMap.has(article.url)) {
 
       uniqueMap.set(
         article.url,
@@ -1957,31 +916,18 @@ async function main() {
 
 
   allCandidates =
-    Array.from(
-      uniqueMap.values()
-    );
+    Array.from(uniqueMap.values());
 
 
-  /* =======================================================
-     ★Geminiへ送る候補を30件に制限
-  ======================================================= */
+  /*
+   * Geminiへ送る候補を100件までに制限
+   */
 
   allCandidates =
-    allCandidates.slice(
-      0,
-      CONFIG.MAX_CANDIDATES
-    );
+    allCandidates.slice(0, 100);
 
 
-  console.log(
-    `📚 Geminiへ送信する候補: ${allCandidates.length}件`
-  );
-
-
-  if (
-    allCandidates.length ===
-    0
-  ) {
+  if (allCandidates.length === 0) {
 
     console.log(
       '⚠️ ニュース候補がありません'
@@ -1992,7 +938,7 @@ async function main() {
 
 
   /* =======================================================
-     Gemini記事生成
+     Geminiで記事生成
   ======================================================= */
 
   console.log(
@@ -2013,66 +959,6 @@ async function main() {
 
   } catch (error) {
 
-    /*
-     * ================================================
-     * ★429の場合
-     * ================================================
-     */
-
-    if (
-      isGeminiQuotaError(
-        error
-      )
-    ) {
-
-      console.warn(
-        '⚠️ Gemini APIのクォータ制限に到達しました'
-      );
-
-      console.warn(
-        '💬 ニュース記事の生成を停止し、一言つぶやきへ切り替えます'
-      );
-
-
-      try {
-
-        await postFallbackTweet(
-          token
-        );
-
-        /*
-         * ★重要
-         *
-         * 429はBot自体の致命的エラーではないため、
-         * process.exit(1)にしない。
-         */
-
-        console.log(
-          '🏁 429フォールバック処理完了'
-        );
-
-        return;
-
-      } catch (fallbackPostError) {
-
-        /*
-         * Firebase側のエラーなら
-         * これは本当の失敗として扱う。
-         */
-
-        throw new Error(
-          `429時のつぶやき投稿にも失敗しました: ${fallbackPostError.message}`
-        );
-      }
-    }
-
-
-    /*
-     * ================================================
-     * その他のGeminiエラー
-     * ================================================
-     */
-
     console.error(
       `❌ 記事生成失敗: ${error.message}`
     );
@@ -2090,31 +976,16 @@ async function main() {
      記事をFirebaseへ投稿
   ======================================================= */
 
-  let posted =
-    0;
+  let posted = 0;
 
 
-  const existingUrls =
-    new Set(
-      existingArticles
-        .map(
-          item =>
-            item.url
-        )
-        .filter(Boolean)
-    );
-
-
-  for (
-    const article
-    of articles
-  ) {
+  for (const article of articles) {
 
     try {
 
-      /* ===================================================
-         出典検証
-      =================================================== */
+      /*
+       * Geminiが返した出典URLを検証
+       */
 
       const validSources =
         validateSources(
@@ -2122,6 +993,10 @@ async function main() {
           allCandidates
         );
 
+
+      /*
+       * 最低2つの出典が必要
+       */
 
       if (
         validSources.length <
@@ -2144,22 +1019,26 @@ async function main() {
         validSources;
 
 
-      /* ===================================================
-         過去記事との重複確認
-      =================================================== */
+      /*
+       * 過去記事との重複確認
+       */
+
+      const existingUrls =
+        new Set(
+          existingArticles
+            .map(item => item.url)
+            .filter(Boolean)
+        );
+
 
       const alreadyPosted =
         article.sources.some(
           source =>
-            existingUrls.has(
-              source.url
-            )
+            existingUrls.has(source.url)
         );
 
 
-      if (
-        alreadyPosted
-      ) {
+      if (alreadyPosted) {
 
         console.log(
           `⏭️ 既存ニュースと重複: ${article.title}`
@@ -2169,9 +1048,7 @@ async function main() {
       }
 
 
-      /* ===================================================
-         投稿
-      =================================================== */
+      /* 投稿 */
 
       await postToFirebase(
         token,
@@ -2183,11 +1060,11 @@ async function main() {
 
 
       /*
-       * 連続投稿間隔
+       * API連続実行を少し避ける
        */
 
-      await sleep(
-        3000
+      await new Promise(resolve =>
+        setTimeout(resolve, 3000)
       );
 
     } catch (error) {
@@ -2209,17 +1086,12 @@ async function main() {
    実行
 ========================================================= */
 
-main()
-  .catch(
-    error => {
+main().catch(error => {
 
-      console.error(
-        '致命的エラー:',
-        error
-      );
-
-      process.exit(
-        1
-      );
-    }
+  console.error(
+    '致命的エラー:',
+    error
   );
+
+  process.exit(1);
+});
