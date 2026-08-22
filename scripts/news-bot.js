@@ -1,56 +1,238 @@
 // scripts/news-bot.js
+
 import fetch from 'node-fetch';
 import { parseStringPromise } from 'xml2js';
 
+
 const CONFIG = {
+
   // 1回の実行で投稿する記事数
   MAX_ARTICLES: 1,
 
-  // 1記事につき最低2つの出典
-  MIN_SOURCES: 2,
+  // 関連記事は1件でもOK
+  MIN_RELATED_ARTICLES: 1,
 
-  // 使用するGeminiモデル
-  MODEL: 'gemini-3.6-flash',
-
-  // Geminiへ送るニュース候補数
+  // 最大候補数
   MAX_CANDIDATES: 1000,
 
-  // 1つの出来事について集める関連記事の最大数
-  MAX_RELATED_ARTICLES: 50,
+  // Geminiモデル
+  MODEL: 'gemini-3.6-flash',
 
-  // ニュース候補を集めるRSS
+  // Gemini API最大リトライ
+  MAX_RETRIES: 2,
+
+  // ニュースRSS
   RSS_FEEDS: [
+
     {
       url: 'https://feeds.bbci.co.uk/news/world/rss.xml',
       source: 'BBC News'
     },
+
     {
       url: 'https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml',
       source: 'BBC Entertainment & Arts'
     },
+
     {
       url: 'https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml',
       source: 'BBC US & Canada'
     },
 
     {
+      url: 'https://feeds.bbci.co.uk/news/business/rss.xml',
+      source: 'BBC Business'
+    },
+
+    {
+      url: 'https://feeds.bbci.co.uk/news/technology/rss.xml',
+      source: 'BBC Technology'
+    },
+
+    {
+      url: 'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml',
+      source: 'BBC Science & Environment'
+    },
+
+    {
+      url: 'https://feeds.bbci.co.uk/news/health/rss.xml',
+      source: 'BBC Health'
+    },
+
+    {
+      url: 'https://feeds.reuters.com/reuters/topNews',
+      source: 'Reuters'
+    },
+
+    {
+      url: 'https://feeds.reuters.com/reuters/worldNews',
+      source: 'Reuters World'
+    },
+
+    {
+      url: 'https://feeds.reuters.com/reuters/entertainment',
+      source: 'Reuters Entertainment'
+    },
+
+    {
+      url: 'https://feeds.reuters.com/reuters/businessNews',
+      source: 'Reuters Business'
+    },
+
+    {
+      url: 'https://feeds.reuters.com/reuters/technologyNews',
+      source: 'Reuters Technology'
+    },
+
+    {
+      url: 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml',
+      source: 'The New York Times'
+    },
+
+    {
+      url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml',
+      source: 'The New York Times Business'
+    },
+
+    {
+      url: 'https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml',
+      source: 'The New York Times Technology'
+    },
+
+    {
+      url: 'https://rss.nytimes.com/services/xml/rss/nyt/Arts.xml',
+      source: 'The New York Times Arts'
+    },
+
+    {
+      url: 'https://www.theguardian.com/world/rss',
+      source: 'The Guardian'
+    },
+
+    {
+      url: 'https://www.theguardian.com/us-news/rss',
+      source: 'The Guardian US'
+    },
+
+    {
+      url: 'https://www.theguardian.com/technology/rss',
+      source: 'The Guardian Technology'
+    },
+
+    {
+      url: 'https://www.theguardian.com/culture/rss',
+      source: 'The Guardian Culture'
+    },
+
+    {
+      url: 'https://rss.cnn.com/rss/edition_world.rss',
+      source: 'CNN World'
+    },
+
+    {
+      url: 'https://rss.cnn.com/rss/edition_us.rss',
+      source: 'CNN US'
+    },
+
+    {
+      url: 'https://rss.cnn.com/rss/edition_entertainment.rss',
+      source: 'CNN Entertainment'
+    },
+
+    {
+      url: 'https://rss.cnn.com/rss/edition_technology.rss',
+      source: 'CNN Technology'
+    },
+
+    {
+      url: 'https://feeds.nbcnews.com/nbcnews/public/news',
+      source: 'NBC News'
+    },
+
+    {
+      url: 'https://feeds.nbcnews.com/nbcnews/public/world',
+      source: 'NBC News World'
+    },
+
+    {
+      url: 'https://feeds.nbcnews.com/nbcnews/public/entertainment',
+      source: 'NBC News Entertainment'
+    },
+
+    {
+      url: 'https://feeds.nbcnews.com/nbcnews/public/technology',
+      source: 'NBC News Technology'
+    },
+
+    {
+      url: 'https://abcnews.go.com/abcnews/topstories',
+      source: 'ABC News'
+    },
+
+    {
+      url: 'https://abcnews.go.com/abcnews/international',
+      source: 'ABC News International'
+    },
+
+    {
+      url: 'https://abcnews.go.com/abcnews/entertainment',
+      source: 'ABC News Entertainment'
+    },
+
+    {
+      url: 'https://www.aljazeera.com/xml/rss/all.xml',
+      source: 'Al Jazeera'
+    },
+
+    {
+      url: 'https://www.euronews.com/rss',
+      source: 'Euronews'
+    },
+
+    {
+      url: 'https://www.independent.co.uk/news/world/rss',
+      source: 'The Independent'
+    },
+
+    {
+      url: 'https://www.independent.co.uk/arts-entertainment/rss',
+      source: 'The Independent Entertainment'
+    },
+
+    {
       url: 'https://news.google.com/rss/search?q=weird+strange+incident+OR+unusual+news&hl=en-US&gl=US&ceid=US:en',
       source: 'Google News'
     },
+
     {
-      url: 'https://news.google.com/rss/search?q=celebrity+OR+youtuber+OR+influencer+news&hl=en-US&gl=US&ceid=US:en',
+      url: 'https://news.google.com/rss/search?q=viral+news+OR+internet+controversy&hl=en-US&gl=US&ceid=US:en',
       source: 'Google News'
     },
+
     {
-      url: 'https://news.google.com/rss/search?q=politics+OR+scandal+OR+controversy&hl=en-US&gl=US&ceid=US:en',
+      url: 'https://news.google.com/rss/search?q=celebrity+OR+youtuber+OR+influencer&hl=en-US&gl=US&ceid=US:en',
       source: 'Google News'
     },
+
     {
-      url: 'https://news.google.com/rss/search?q=viral+internet+news+OR+social+media+controversy&hl=en-US&gl=US&ceid=US:en',
+      url: 'https://news.google.com/rss/search?q=unusual+law+OR+strange+law&hl=en-US&gl=US&ceid=US:en',
+      source: 'Google News'
+    },
+
+    {
+      url: 'https://news.google.com/rss/search?q=scandal+OR+controversy+OR+backlash&hl=en-US&gl=US&ceid=US:en',
+      source: 'Google News'
+    },
+
+    {
+      url: 'https://news.google.com/rss/search?q=funny+news+OR+weird+news&hl=en-US&gl=US&ceid=US:en',
       source: 'Google News'
     }
+
   ]
+
 };
+
 
 const FIREBASE_DB_URL = process.env.FIREBASE_DB_URL;
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
@@ -60,10 +242,6 @@ const NEWSBOT_PASSWORD = process.env.NEWSBOT_PASSWORD;
 const NEWSBOT_UID = process.env.NEWSBOT_UID;
 
 
-/* =========================================================
-   環境変数チェック
-========================================================= */
-
 if (
   !FIREBASE_DB_URL ||
   !FIREBASE_API_KEY ||
@@ -72,7 +250,11 @@ if (
   !NEWSBOT_PASSWORD ||
   !NEWSBOT_UID
 ) {
-  throw new Error('必要な環境変数が設定されていません');
+
+  throw new Error(
+    '必要な環境変数が設定されていません'
+  );
+
 }
 
 
@@ -92,26 +274,41 @@ async function getFirebaseToken() {
       },
 
       body: JSON.stringify({
+
         email: NEWSBOT_EMAIL,
+
         password: NEWSBOT_PASSWORD,
+
         returnSecureToken: true
+
       })
     }
   );
 
+
   const data = await res.json();
 
-  if (!data.idToken) {
+
+  if (
+    !res.ok ||
+    !data.idToken
+  ) {
 
     throw new Error(
       'Firebase Auth失敗: ' +
       JSON.stringify(data)
     );
+
   }
 
-  console.log('✅ Firebase Auth成功');
+
+  console.log(
+    '✅ Firebase Auth成功'
+  );
+
 
   return data.idToken;
+
 }
 
 
@@ -127,6 +324,7 @@ async function fetchRSS(feed) {
       `📡 RSS取得: ${feed.source}`
     );
 
+
     const res = await fetch(
       feed.url,
       {
@@ -137,15 +335,19 @@ async function fetchRSS(feed) {
       }
     );
 
+
     if (!res.ok) {
 
       throw new Error(
         `HTTP ${res.status}`
       );
+
     }
+
 
     const xml =
       await res.text();
+
 
     const parsed =
       await parseStringPromise(
@@ -155,18 +357,25 @@ async function fetchRSS(feed) {
         }
       );
 
+
     const channel =
-      parsed.rss?.channel;
+      parsed.rss?.channel ||
+      parsed.feed;
+
 
     if (!channel) {
 
       throw new Error(
         'RSSのパースに失敗'
       );
+
     }
 
+
     const rawItems =
-      channel.item;
+      channel.item ||
+      channel.entry;
+
 
     const items =
       Array.isArray(rawItems)
@@ -175,10 +384,12 @@ async function fetchRSS(feed) {
           ? [rawItems]
           : [];
 
+
     return items
       .map(item => {
 
         let url = '';
+
 
         if (
           typeof item.link ===
@@ -194,10 +405,36 @@ async function fetchRSS(feed) {
 
           url =
             item.link._;
+
+        } else if (
+          Array.isArray(item.link)
+        ) {
+
+          const link =
+            item.link.find(
+              x =>
+                x?.$?.rel ===
+                'alternate'
+            ) ||
+            item.link[0];
+
+          url =
+            link?.$?.href ||
+            link?._ ||
+            '';
+
+        } else if (
+          item.link?.$?.href
+        ) {
+
+          url =
+            item.link.$.href;
+
         }
 
 
         let description = '';
+
 
         if (
           typeof item.description ===
@@ -213,10 +450,27 @@ async function fetchRSS(feed) {
 
           description =
             item.description._;
+
+        } else if (
+          typeof item.summary ===
+          'string'
+        ) {
+
+          description =
+            item.summary;
+
+        } else if (
+          item.summary?._
+        ) {
+
+          description =
+            item.summary._;
+
         }
 
 
         let pubDate = '';
+
 
         if (
           typeof item.pubDate ===
@@ -225,12 +479,32 @@ async function fetchRSS(feed) {
 
           pubDate =
             item.pubDate;
+
+        } else if (
+          typeof item.published ===
+          'string'
+        ) {
+
+          pubDate =
+            item.published;
+
+        } else if (
+          item.published?._
+        ) {
+
+          pubDate =
+            item.published._;
+
         }
 
 
         return {
+
           title:
-            item.title || '',
+            typeof item.title ===
+            'string'
+              ? item.title
+              : item.title?._ || '',
 
           url,
 
@@ -240,6 +514,7 @@ async function fetchRSS(feed) {
 
           source:
             feed.source
+
         };
 
       })
@@ -249,6 +524,7 @@ async function fetchRSS(feed) {
           item.url
       );
 
+
   } catch (error) {
 
     console.error(
@@ -256,12 +532,14 @@ async function fetchRSS(feed) {
     );
 
     return [];
+
   }
+
 }
 
 
 /* =========================================================
-   Firebaseから過去記事取得
+   Firebase過去記事
 ========================================================= */
 
 async function getExistingArticles(token) {
@@ -270,21 +548,43 @@ async function getExistingArticles(token) {
     `${FIREBASE_DB_URL}/newsArticles.json?auth=${token}`
   );
 
+
   if (!res.ok) {
 
     throw new Error(
       `既存記事取得失敗: HTTP ${res.status}`
     );
+
   }
+
 
   const data =
     await res.json();
 
+
   if (!data) {
+
     return [];
+
   }
 
+
   return Object.values(data);
+
+}
+
+
+/* =========================================================
+   sleep
+========================================================= */
+
+function sleep(ms) {
+
+  return new Promise(
+    resolve =>
+      setTimeout(resolve, ms)
+  );
+
 }
 
 
@@ -292,79 +592,176 @@ async function getExistingArticles(token) {
    Gemini API
 ========================================================= */
 
-async function callGemini(prompt) {
+async function callGemini(
+  prompt
+) {
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-    {
-      method: 'POST',
+  let lastError =
+    null;
 
-      headers: {
-        'Content-Type':
-          'application/json'
-      },
 
-      body: JSON.stringify({
+  for (
+    let attempt = 1;
+    attempt <= CONFIG.MAX_RETRIES;
+    attempt++
+  ) {
 
-        contents: [
+    try {
+
+      console.log(
+        `🤖 Gemini API実行 (${attempt}/${CONFIG.MAX_RETRIES})`
+      );
+
+
+      const res =
+        await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.MODEL}:generateContent?key=${GEMINI_API_KEY}`,
           {
-            parts: [
-              {
-                text:
-                  prompt
-              }
-            ]
+            method: 'POST',
+
+            headers: {
+              'Content-Type':
+                'application/json'
+            },
+
+            body:
+              JSON.stringify({
+
+                contents: [
+                  {
+                    parts: [
+                      {
+                        text:
+                          prompt
+                      }
+                    ]
+                  }
+                ],
+
+                generationConfig: {
+
+                  temperature:
+                    0.4,
+
+                  maxOutputTokens:
+                    7000,
+
+                  responseMimeType:
+                    'application/json'
+
+                }
+
+              })
           }
-        ],
+        );
 
-        generationConfig: {
 
-          temperature:
-            0.4,
+      const data =
+        await res.json();
 
-          maxOutputTokens:
-            7000,
 
-          responseMimeType:
-            'application/json'
-        }
-      })
+      if (res.ok) {
+
+        return data;
+
+      }
+
+
+      lastError =
+        new Error(
+          'Gemini API失敗: ' +
+          JSON.stringify(data)
+        );
+
+
+      if (
+        res.status === 429
+      ) {
+
+        console.warn(
+          '⚠️ Gemini 429: クォータ/レート制限です'
+        );
+
+        /*
+         * 429を何度も叩かない
+         */
+
+        throw lastError;
+
+      }
+
+
+      if (
+        res.status >= 500 &&
+        attempt < CONFIG.MAX_RETRIES
+      ) {
+
+        await sleep(
+          3000 * attempt
+        );
+
+        continue;
+
+      }
+
+
+      throw lastError;
+
+
+    } catch (error) {
+
+      if (
+        error.message?.includes(
+          'Gemini API失敗'
+        )
+      ) {
+
+        throw error;
+
+      }
+
+
+      lastError =
+        error;
+
+
+      if (
+        attempt <
+        CONFIG.MAX_RETRIES
+      ) {
+
+        await sleep(
+          3000 * attempt
+        );
+
+      }
+
     }
+
+  }
+
+
+  throw (
+    lastError ||
+    new Error(
+      'Gemini APIに接続できませんでした'
+    )
   );
 
-  const data =
-    await res.json();
+}
 
-  if (!res.ok) {
 
-    throw new Error(
-      'Gemini API失敗: ' +
-      JSON.stringify(data)
-    );
-  }
+/* =========================================================
+   JSON解析
+========================================================= */
 
-  const text =
-    data.candidates
-      ?.[
-        0
-      ]
-      ?.content
-      ?.parts
-      ?.[
-        0
-      ]
-      ?.text;
-
-  if (!text) {
-
-    throw new Error(
-      'Geminiから回答が返されませんでした: ' +
-      JSON.stringify(data)
-    );
-  }
+function parseGeminiJson(
+  text
+) {
 
   let cleaned =
     text.trim();
+
 
   cleaned =
     cleaned
@@ -386,8 +783,10 @@ async function callGemini(prompt) {
   const firstBrace =
     cleaned.indexOf('{');
 
+
   const lastBrace =
     cleaned.lastIndexOf('}');
+
 
   if (
     firstBrace !== -1 &&
@@ -400,31 +799,19 @@ async function callGemini(prompt) {
         firstBrace,
         lastBrace + 1
       );
+
   }
 
 
-  try {
+  return JSON.parse(
+    cleaned
+  );
 
-    return JSON.parse(
-      cleaned
-    );
-
-  } catch (error) {
-
-    console.error(
-      'Geminiの返答:',
-      text
-    );
-
-    throw new Error(
-      'GeminiのJSON解析に失敗しました'
-    );
-  }
 }
 
 
 /* =========================================================
-   ① 1000件から最も興味深い出来事を1つ選ぶ
+   Gemini候補選択
 ========================================================= */
 
 async function selectInterestingEvent(
@@ -442,161 +829,199 @@ async function selectInterestingEvent(
       .slice(-100);
 
 
-  /*
-   * 1000件全部を候補として渡す。
-   *
-   * 記事本文全体ではなく、
-   * タイトル・媒体・日時・概要を使用。
-   */
-
   const candidateText =
     candidates
       .map(
         (article, index) => {
 
           return `
-[候補 ${index + 1}]
-媒体: ${article.source}
-タイトル: ${article.title}
-公開日時: ${article.pubDate}
-概要: ${article.description}
+---候補 ${index + 1}---
+
+媒体:
+${article.source}
+
+タイトル:
+${article.title}
+
+公開日時:
+${article.pubDate}
+
+URL:
+${article.url}
+
+概要:
+${article.description}
 `;
+
         }
       )
       .join('\n');
 
 
   const prompt = `
+
 あなたは「Ecstasy」という日本語SNSのニュース編集AIです。
 
-以下には海外ニュースRSSから集めた最大1000件のニュース候補があります。
+以下に最大1000件のニュース候補があります。
 
-この1000件をすべて確認し、
-「日本の若者が最も興味を持ちそうな1つの出来事」
-を選んでください。
+この中から、
+日本の若者が最も「何それ？」「詳しく知りたい」と思いそうな
+非常に興味深い「1つの出来事」を選んでください。
 
-重要なのは「記事」ではなく「出来事」を1つ選ぶことです。
+重要なのは「記事」を選ぶことではなく、
+「1つの出来事」を選ぶことです。
 
 例えば、
 
-BBCの記事
-CNNの記事
-Fox Newsの記事
-Guardianの記事
+A社「ある珍事件が発生」
+B社「同じ珍事件を報道」
+C社「同じ珍事件を報道」
 
-が同じ事件について報じている場合、
-それらは別々のニュースではなく、
-「1つの出来事」として扱います。
+という候補があれば、
+3つの記事を別々に選ぶのではなく、
 
-==================================================
-【選定基準】
-==================================================
+「その珍事件」
 
-以下を特に重視してください。
+という1つの出来事を選択してください。
 
-・何それ！？と思わせる
-・意外性がある
-・珍しい
-・話題性が高い
-・SNSで議論されそう
-・日本人が知らなそう
-・海外で実際に起きた出来事
-・複数媒体から報道されている可能性がある
-・記事として詳しく紹介する価値がある
 
-ただし、
+【優先するニュース】
 
-・架空の事件は禁止
-・噂だけの話は禁止
-・単なる広告は禁止
-・同じ内容の古い記事より新しい出来事を優先
-・既に投稿したニュースは避ける
+・珍事件
+・意外な事件
+・海外のおもしろニュース
+・日本人が知らない海外事情
+・意外な法律や制度
+・芸能
+・YouTuber
+・インフルエンサー
+・SNSで話題の出来事
+・スキャンダル
+・政治・社会
+・変わった文化
+・思わず人に話したくなるニュース
 
-==================================================
+
+【禁止】
+
+・候補にない情報を作らない
+・存在しないニュースを作らない
+・過去記事と同じ出来事を選ばない
+
+
 【過去記事】
-==================================================
 
 ${previousTitles.join('\n')}
 
-==================================================
-【ニュース候補1000件】
-==================================================
+
+【ニュース候補】
 
 ${candidateText}
 
-==================================================
+
 【出力】
-==================================================
 
 必ずJSONのみ。
 
 {
-  "selectedIndex": 123,
-  "event": "選択した出来事を短く説明",
-  "reason": "この出来事を選んだ理由"
+  "event": {
+    "title": "選択した出来事を短く表現",
+    "reason": "なぜこの出来事を選んだのか",
+    "candidateIndex": 1
+  }
 }
+
+candidateIndexは、
+この候補一覧における基準記事の番号です。
+
 `;
 
 
-  const result =
+  const data =
     await callGemini(
       prompt
     );
 
 
-  const index =
-    Number(
-      result.selectedIndex
+  const text =
+    data.candidates
+      ?.[
+        0
+      ]
+      ?.content
+      ?.parts
+      ?.[
+        0
+      ]
+      ?.text;
+
+
+  if (!text) {
+
+    throw new Error(
+      'Geminiから選択結果が返されませんでした'
+    );
+
+  }
+
+
+  const result =
+    parseGeminiJson(
+      text
     );
 
 
   if (
-    !Number.isInteger(index) ||
-    index < 1 ||
-    index > candidates.length
+    !result.event ||
+    !result.event.candidateIndex
   ) {
 
     throw new Error(
-      `Geminiが不正な候補番号を返しました: ${result.selectedIndex}`
+      'Geminiの出来事選択結果が不正です'
     );
+
   }
 
 
-  const selected =
-    candidates[index - 1];
+  const index =
+    Number(
+      result.event.candidateIndex
+    ) - 1;
 
 
-  console.log(
-    `🎯 選択された出来事: ${result.event}`
-  );
+  if (
+    index < 0 ||
+    index >= candidates.length
+  ) {
 
-  console.log(
-    `💡 選択理由: ${result.reason}`
-  );
+    throw new Error(
+      'Geminiが不正な候補番号を返しました'
+    );
 
-  console.log(
-    `📰 基準記事: ${selected.title}`
-  );
+  }
 
 
   return {
+
     event:
       result.event,
 
-    selectedArticle:
-      selected
+    baseArticle:
+      candidates[index]
+
   };
+
 }
 
 
 /* =========================================================
-   ② 1000件から同じ出来事の記事をすべて抽出
+   関連記事検索
 ========================================================= */
 
 async function findRelatedArticles(
   candidates,
   selectedEvent,
-  selectedArticle
+  baseArticle
 ) {
 
   const candidateText =
@@ -605,150 +1030,188 @@ async function findRelatedArticles(
         (article, index) => {
 
           return `
-[候補 ${index + 1}]
-媒体: ${article.source}
-タイトル: ${article.title}
-公開日時: ${article.pubDate}
-URL: ${article.url}
-概要: ${article.description}
+---候補 ${index + 1}---
+
+媒体:
+${article.source}
+
+タイトル:
+${article.title}
+
+公開日時:
+${article.pubDate}
+
+URL:
+${article.url}
+
+概要:
+${article.description}
 `;
+
         }
       )
       .join('\n');
 
 
   const prompt = `
-あなたはニュース調査AIです。
 
-まず、今回調査する出来事は以下です。
+あなたはニュース記事の調査AIです。
 
-==================================================
+以下の「選択された出来事」と、
+最大1000件のニュース候補があります。
+
+選択された出来事と「同じ出来事」を報じている候補記事を
+できるだけすべて探してください。
+
+重要：
+
+・似たジャンルの記事ではなく、同じ出来事を探す
+・別の事件を混ぜない
+・同じ人物でも別事件なら除外
+・同じ場所でも別事件なら除外
+・タイトルだけでなく概要も比較する
+・明らかに同じ出来事なら採用
+・1件しかなくても問題ない
+・基準記事そのものも関連記事として採用する
+
+
 【選択された出来事】
-==================================================
 
-${selectedEvent}
+${selectedEvent.title}
 
-基準記事:
-媒体: ${selectedArticle.source}
-タイトル: ${selectedArticle.title}
-URL: ${selectedArticle.url}
+選択理由:
+
+${selectedEvent.reason}
+
+
+【基準記事】
+
+媒体:
+${baseArticle.source}
+
+タイトル:
+${baseArticle.title}
+
+URL:
+${baseArticle.url}
+
 概要:
-${selectedArticle.description}
+${baseArticle.description}
 
-==================================================
-【目的】
-==================================================
 
-以下の1000件のニュース候補の中から、
-
-「上記の出来事と同じ事件・事故・ニュース・騒動を報じている記事」
-
-をすべて探してください。
-
-非常に重要です。
-
-単に似た単語が入っているだけの記事は除外してください。
-
-例えば、
-
-「富士山で7歳児を置き去りにした父親」
-
-が対象なら、
-
-・同じ父親についての記事
-・同じ7歳児についての記事
-・同じ事件についての記事
-・同じ事件を別のニュース会社が報じた記事
-
-は含めます。
-
-一方、
-
-・別の富士山ニュース
-・別の子供置き去り事件
-・単に「富士山」という単語が入っている記事
-
-は除外してください。
-
-==================================================
-【重要】
-==================================================
-
-1000件を確認してください。
-
-同じ出来事を報じている記事は、
-媒体が違ってもすべて抽出してください。
-
-最大${CONFIG.MAX_RELATED_ARTICLES}件まで返してください。
-
-==================================================
-【1000件の候補】
-==================================================
+【候補一覧】
 
 ${candidateText}
 
-==================================================
+
 【出力】
-==================================================
 
 必ずJSONのみ。
 
 {
-  "relatedIndexes": [12, 45, 78],
-  "reason": "関連記事と判断した理由"
+  "relatedArticles": [
+    {
+      "candidateIndex": 1,
+      "reason": "同じ出来事だと判断した理由"
+    }
+  ]
 }
-
-relatedIndexesには、
-同じ出来事を扱っている候補番号をすべて入れてください。
 
 `;
 
 
-  const result =
+
+  const data =
     await callGemini(
       prompt
     );
 
 
+  const text =
+    data.candidates
+      ?.[
+        0
+      ]
+      ?.content
+      ?.parts
+      ?.[
+        0
+      ]
+      ?.text;
+
+
+  if (!text) {
+
+    throw new Error(
+      '関連記事検索結果が返されませんでした'
+    );
+
+  }
+
+
+  const result =
+    parseGeminiJson(
+      text
+    );
+
+
   if (
     !Array.isArray(
-      result.relatedIndexes
+      result.relatedArticles
     )
   ) {
 
     throw new Error(
-      '関連記事番号が配列ではありません'
+      'relatedArticlesが配列ではありません'
     );
+
   }
 
 
-  const indexes =
-    result.relatedIndexes
-      .map(
-        index =>
-          Number(index)
+  const related =
+    [];
+
+
+  for (
+    const item
+    of result.relatedArticles
+  ) {
+
+    const index =
+      Number(
+        item.candidateIndex
+      ) - 1;
+
+
+    if (
+      index < 0 ||
+      index >= candidates.length
+    ) {
+
+      continue;
+
+    }
+
+
+    const article =
+      candidates[index];
+
+
+    if (
+      !related.some(
+        x =>
+          x.url ===
+          article.url
       )
-      .filter(
-        index =>
-          Number.isInteger(index) &&
-          index >= 1 &&
-          index <= candidates.length
+    ) {
+
+      related.push(
+        article
       );
 
+    }
 
-  const uniqueIndexes =
-    [...new Set(indexes)]
-      .slice(
-        0,
-        CONFIG.MAX_RELATED_ARTICLES
-      );
-
-
-  const relatedArticles =
-    uniqueIndexes.map(
-      index =>
-        candidates[index - 1]
-    );
+  }
 
 
   /*
@@ -756,49 +1219,27 @@ relatedIndexesには、
    */
 
   if (
-    !relatedArticles.some(
-      article =>
-        article.url ===
-        selectedArticle.url
+    !related.some(
+      x =>
+        x.url ===
+        baseArticle.url
     )
   ) {
 
-    relatedArticles.unshift(
-      selectedArticle
+    related.unshift(
+      baseArticle
     );
+
   }
 
 
-  console.log(
-    `🔎 同じ出来事の記事を ${relatedArticles.length}件発見`
-  );
+  return related;
 
-  console.log(
-    `💡 ${result.reason || ''}`
-  );
-
-
-  for (
-    const article
-    of relatedArticles
-  ) {
-
-    console.log(
-      `   📰 ${article.source}: ${article.title}`
-    );
-  }
-
-
-  return relatedArticles
-    .slice(
-      0,
-      CONFIG.MAX_RELATED_ARTICLES
-    );
 }
 
 
 /* =========================================================
-   ③ 関連記事をすべて比較して1記事にまとめる
+   関連記事から1記事生成
 ========================================================= */
 
 async function generateFinalArticle(
@@ -817,14 +1258,13 @@ async function generateFinalArticle(
       .slice(-100);
 
 
-  const relatedText =
+  const sourceText =
     relatedArticles
       .map(
         (article, index) => {
 
           return `
-==================================================
-【関連記事 ${index + 1}】
+---関連記事 ${index + 1}---
 
 媒体:
 ${article.source}
@@ -841,95 +1281,74 @@ ${article.url}
 概要:
 ${article.description}
 `;
+
         }
       )
       .join('\n');
 
 
   const prompt = `
+
 あなたは「Ecstasy」という日本語SNSのニュース編集AIです。
 
-複数の海外ニュース媒体が報じた
-「1つの同じ出来事」について、
-それぞれの記事を比較・照合し、
-Ecstasy用のニュース記事を1本作成してください。
+今回選ばれた「1つの出来事」について、
+関連するニュース記事をまとめ、
+Ecstasy向けの「1つの記事」を作成してください。
 
-==================================================
-【今回の出来事】
-==================================================
+記事を複数作ってはいけません。
 
-${selectedEvent}
+必ず1つの記事にまとめてください。
 
-==================================================
+
+【選択された出来事】
+
+${selectedEvent.title}
+
+
 【関連記事】
-==================================================
 
-以下は、この出来事を報じていると判断された記事です。
+${sourceText}
 
-${relatedText}
 
-==================================================
-【情報の扱い】
-==================================================
+【最重要】
 
-非常に重要です。
+関連記事が1件しかない場合でも記事を作成してください。
 
-複数の記事を比較してください。
+関連記事が複数ある場合は、
+複数の報道内容を比較して、
+共通して確認できる事実を中心にまとめてください。
 
-複数媒体で共通して確認できる情報を優先してください。
+関連記事に存在しない情報を追加してはいけません。
 
-媒体によって内容が違う場合は、
-無理に一つに決めつけないでください。
+架空の情報は禁止です。
 
-「BBCによると」
-「別の報道では」
-など、必要に応じて情報源の違いを説明してください。
+架空のURLは禁止です。
 
-架空の情報を追加してはいけません。
+出典URLは必ず上記関連記事のURLだけを使用してください。
 
-記事に存在しない情報を推測で追加してはいけません。
 
-「逮捕」
-「死亡」
-「犯罪」
-「性的スキャンダル」
-など重大な情報については特に慎重にしてください。
+【本文】
 
-元記事の文章をそのままコピーしないでください。
+400〜700文字程度。
 
-必ず自分の言葉で要約してください。
+自然なニュース記事として書いてください。
 
-==================================================
-【記事の内容】
-==================================================
-
-1記事400〜700文字程度。
-
-以下を自然なニュース記事として説明してください。
+可能な範囲で、
 
 ・何が起きたのか
-・いつ起きたのか
-・どこで起きたのか
-・誰が関係しているのか
+・いつ
+・どこで
+・誰が
 ・なぜ話題になったのか
 ・現在どうなっているのか
-・必要なら背景
+・必要な背景
 
-単なる箇条書きは禁止です。
+を含めてください。
 
-==================================================
+
 【見出し】
-==================================================
 
 SNSで目を引く見出しにしてください。
-
-例：
-
-【まさかの展開】○○をめぐり海外で思わぬ騒動に
-
-【実は○○だった！？】知られざる○○の事実
-
-【なぜこうなった？】○○をめぐって大きな話題に
 
 ただし、
 
@@ -939,31 +1358,17 @@ SNSで目を引く見出しにしてください。
 
 こと。
 
-==================================================
-【出典】
-==================================================
 
-実際に今回渡された関連記事のURLだけを使用してください。
-
-最低${CONFIG.MIN_SOURCES}つの異なる出典を付けてください。
-
-可能なら異なるニュース媒体を使用してください。
-
-架空URLは禁止です。
-
-==================================================
 【過去記事】
-==================================================
 
 以下と同じニュースは避けてください。
 
 ${previousTitles.join('\n')}
 
-==================================================
-【category】
-==================================================
 
-以下から1つ選択してください。
+【カテゴリー】
+
+以下から1つ。
 
 海外事件
 海外ニュース
@@ -974,37 +1379,62 @@ YouTuber・インフルエンサー
 雑学
 その他
 
-==================================================
-【出力】
-==================================================
 
-JSONのみ。
+【出力】
+
+必ずJSONのみ。
 
 {
   "articles": [
     {
-      "title": "記事の見出し",
-      "summary": "400〜700文字程度の記事本文",
-      "category": "海外事件",
+      "title": "記事タイトル",
+      "summary": "記事本文",
+      "category": "海外ニュース",
       "sources": [
         {
           "name": "媒体名",
-          "url": "関連記事に存在するURL"
-        },
-        {
-          "name": "媒体名",
-          "url": "関連記事に存在するURL"
+          "url": "実際の関連記事URL"
         }
       ]
     }
   ]
 }
+
 `;
 
 
-  const result =
+
+  const data =
     await callGemini(
       prompt
+    );
+
+
+  const text =
+    data.candidates
+      ?.[
+        0
+      ]
+      ?.content
+      ?.parts
+      ?.[
+        0
+      ]
+      ?.text;
+
+
+  if (!text) {
+
+    throw new Error(
+      'Geminiから記事が返されませんでした'
+    );
+
+  }
+
+
+  const result =
+    parseGeminiJson(
+      text
     );
 
 
@@ -1015,8 +1445,9 @@ JSONのみ。
   ) {
 
     throw new Error(
-      'Geminiのarticlesが配列ではありません'
+      'articlesが配列ではありません'
     );
+
   }
 
 
@@ -1034,34 +1465,35 @@ JSONのみ。
       0,
       CONFIG.MAX_ARTICLES
     );
+
 }
 
 
 /* =========================================================
-   出典URLの検証
+   出典URL検証
 ========================================================= */
 
 function validateSources(
   article,
-  candidates
+  relatedArticles
 ) {
 
-  const candidateUrls =
+  const validUrls =
     new Set(
-      candidates.map(
+      relatedArticles.map(
         item =>
           item.url
       )
     );
 
 
-  const validSources =
+  const sources =
     [];
 
 
   for (
     const source
-    of article.sources
+    of article.sources || []
   ) {
 
     if (
@@ -1071,57 +1503,115 @@ function validateSources(
     ) {
 
       continue;
+
     }
 
 
-    /*
-     * Geminiが勝手にURLを作っていないか確認
-     */
+    let parsedUrl;
+
+
+    try {
+
+      parsedUrl =
+        new URL(
+          source.url
+        );
+
+    } catch {
+
+      continue;
+
+    }
+
 
     if (
-      !candidateUrls.has(
+      parsedUrl.protocol !==
+        'http:' &&
+      parsedUrl.protocol !==
+        'https:'
+    ) {
+
+      continue;
+
+    }
+
+
+    if (
+      !validUrls.has(
         source.url
       )
     ) {
 
       console.log(
-        `⚠️ 候補に存在しないURLを除外: ${source.url}`
+        `⚠️ 関連記事に存在しない出典を除外: ${source.url}`
       );
 
       continue;
+
     }
 
 
-    /*
-     * URL重複防止
-     */
-
     if (
-      !validSources.some(
+      !sources.some(
         item =>
           item.url ===
           source.url
       )
     ) {
 
-      validSources.push({
+      sources.push({
 
         name:
           source.name,
 
         url:
           source.url
+
       });
+
     }
+
   }
 
 
-  return validSources;
+  /*
+   * Geminiが出典を1件も返さなかった場合、
+   * 関連記事から自動補完
+   */
+
+  if (
+    sources.length === 0
+  ) {
+
+    for (
+      const article
+      of relatedArticles
+    ) {
+
+      sources.push({
+
+        name:
+          article.source,
+
+        url:
+          article.url
+
+      });
+
+      break;
+
+    }
+
+  }
+
+
+  return sources;
+
 }
 
 
 /* =========================================================
-   Firebaseへニュース投稿
+   Firebase投稿
 ========================================================= */
 
 async function postToFirebase(
@@ -1150,6 +1640,7 @@ async function postToFirebase(
     postText +=
       `・${source.name}\n` +
       `${source.url}\n`;
+
   }
 
 
@@ -1201,9 +1692,20 @@ async function postToFirebase(
             newsCategory:
               article.category ||
               'ニュース'
+
           })
+
       }
     );
+
+
+  if (!threadRes.ok) {
+
+    throw new Error(
+      `スレッド作成失敗: HTTP ${threadRes.status}`
+    );
+
+  }
 
 
   const threadData =
@@ -1222,6 +1724,7 @@ async function postToFirebase(
         threadData
       )
     );
+
   }
 
 
@@ -1280,7 +1783,9 @@ async function postToFirebase(
             newsCategory:
               article.category ||
               'ニュース'
+
           })
+
       }
     );
 
@@ -1290,6 +1795,7 @@ async function postToFirebase(
     throw new Error(
       `ニュース本文投稿失敗: HTTP ${postRes.status}`
     );
+
   }
 
 
@@ -1358,7 +1864,9 @@ async function postToFirebase(
               now,
 
             tid
+
           })
+
       }
     );
 
@@ -1368,6 +1876,7 @@ async function postToFirebase(
     throw new Error(
       `ニュース履歴保存失敗: HTTP ${saveRes.status}`
     );
+
   }
 
 
@@ -1381,11 +1890,12 @@ async function postToFirebase(
 
 
   return tid;
+
 }
 
 
 /* =========================================================
-   メイン処理
+   メイン
 ========================================================= */
 
 async function main() {
@@ -1395,17 +1905,13 @@ async function main() {
   );
 
 
-  /* =======================================================
-     Firebaseログイン
-  ======================================================= */
+  /* Firebase */
 
   const token =
     await getFirebaseToken();
 
 
-  /* =======================================================
-     過去記事取得
-  ======================================================= */
+  /* 過去記事 */
 
   const existingArticles =
     await getExistingArticles(
@@ -1446,6 +1952,7 @@ async function main() {
       allCandidates.concat(
         articles
       );
+
   }
 
 
@@ -1477,7 +1984,9 @@ async function main() {
         article.url,
         article
       );
+
     }
+
   }
 
 
@@ -1518,26 +2027,80 @@ async function main() {
     );
 
     return;
+
   }
 
 
   /* =======================================================
-     ① 1000件から1つの出来事を選択
+     既存ニュースURL
   ======================================================= */
 
+  const existingUrls =
+    new Set(
+      existingArticles
+        .map(
+          item =>
+            item.url
+        )
+        .filter(Boolean)
+    );
+
+
+  /*
+   * 既存記事のURLを候補から除外
+   *
+   * これにより同じニュースを再選択しにくくする
+   */
+
+  const freshCandidates =
+    allCandidates.filter(
+      article =>
+        !existingUrls.has(
+          article.url
+        )
+    );
+
+
+  /*
+   * 全部既存だった場合は終了
+   */
+
+  if (
+    freshCandidates.length ===
+    0
+  ) {
+
+    console.log(
+      '⏭️ 新しいニュース候補がありません'
+    );
+
+    return;
+
+  }
+
+
   console.log(
-    '🤖 1000件から最も興味深い出来事を選択中...'
+    `🆕 新規候補: ${freshCandidates.length}件`
   );
 
 
-  let selected;
+  /* =======================================================
+     1つの出来事を選択
+  ======================================================= */
+
+  console.log(
+    `🤖 ${freshCandidates.length}件から最も興味深い出来事を選択中...`
+  );
+
+
+  let selection;
 
 
   try {
 
-    selected =
+    selection =
       await selectInterestingEvent(
-        allCandidates,
+        freshCandidates,
         existingArticles
       );
 
@@ -1548,15 +2111,31 @@ async function main() {
     );
 
     throw error;
+
   }
 
 
+  console.log(
+    `🎯 選択された出来事: ${selection.event.title}`
+  );
+
+
+  console.log(
+    `💡 選択理由: ${selection.event.reason}`
+  );
+
+
+  console.log(
+    `📰 基準記事: ${selection.baseArticle.title}`
+  );
+
+
   /* =======================================================
-     ② 1000件から同じ出来事の記事を抽出
+     同じ出来事の記事を探す
   ======================================================= */
 
   console.log(
-    '🔎 1000件の中から同じ出来事を報じている記事を検索中...'
+    '🔎 候補の中から同じ出来事を報じている記事を検索中...'
   );
 
 
@@ -1567,38 +2146,67 @@ async function main() {
 
     relatedArticles =
       await findRelatedArticles(
-        allCandidates,
-        selected.event,
-        selected.selectedArticle
+        freshCandidates,
+        selection.event,
+        selection.baseArticle
       );
 
   } catch (error) {
 
     console.error(
-      `❌ 関連記事抽出失敗: ${error.message}`
+      `❌ 関連記事検索失敗: ${error.message}`
     );
 
     throw error;
+
   }
 
 
-  if (
-    relatedArticles.length <
-    CONFIG.MIN_SOURCES
+  console.log(
+    `🔎 同じ出来事の記事を ${relatedArticles.length}件発見`
+  );
+
+
+  for (
+    const article
+    of relatedArticles
   ) {
 
-    throw new Error(
-      `関連記事が${CONFIG.MIN_SOURCES}件未満でした`
+    console.log(
+      `   📰 ${article.source}: ${article.title}`
     );
+
   }
 
 
   /* =======================================================
-     ③ 関連記事をまとめて1記事にする
+     ★重要
+     
+     1件でも投稿する
+     
+     0件だけ停止
+  ======================================================= */
+
+  if (
+    relatedArticles.length <
+    CONFIG.MIN_RELATED_ARTICLES
+  ) {
+
+    console.log(
+      '⚠️ 関連記事が見つからなかったため今回は投稿しません'
+    );
+
+    return;
+
+  }
+
+
+  /* =======================================================
+     1つの記事へ統合
   ======================================================= */
 
   console.log(
-    `📝 ${relatedArticles.length}件の関連記事を比較して1記事にまとめています...`
+    `✍️ ${relatedArticles.length}件の記事を1つの記事へ統合中...`
   );
 
 
@@ -1610,7 +2218,7 @@ async function main() {
     articles =
       await generateFinalArticle(
         relatedArticles,
-        selected.event,
+        selection.event,
         existingArticles
       );
 
@@ -1621,16 +2229,17 @@ async function main() {
     );
 
     throw error;
+
   }
 
 
   console.log(
-    `🤖 最終記事: ${articles.length}件`
+    `🤖 ${articles.length}件の記事を生成`
   );
 
 
   /* =======================================================
-     Firebaseへ投稿
+     Firebase投稿
   ======================================================= */
 
   let posted =
@@ -1644,10 +2253,7 @@ async function main() {
 
     try {
 
-      /*
-       * 関連記事のURLだけを
-       * 正しい出典として許可
-       */
+      /* 出典検証 */
 
       const validSources =
         validateSources(
@@ -1656,20 +2262,21 @@ async function main() {
         );
 
 
+      /*
+       * 1件でもあればOK
+       */
+
       if (
-        validSources.length <
-        CONFIG.MIN_SOURCES
+        validSources.length ===
+        0
       ) {
 
         console.log(
-          `⚠️ 出典不足のため投稿スキップ: ${article.title}`
-        );
-
-        console.log(
-          `   出典数: ${validSources.length}`
+          `⚠️ 出典が確認できないため投稿スキップ: ${article.title}`
         );
 
         continue;
+
       }
 
 
@@ -1678,19 +2285,8 @@ async function main() {
 
 
       /* ===================================================
-         過去記事との重複確認
+         既存URL確認
       =================================================== */
-
-      const existingUrls =
-        new Set(
-          existingArticles
-            .map(
-              item =>
-                item.url
-            )
-            .filter(Boolean)
-        );
-
 
       const alreadyPosted =
         article.sources.some(
@@ -1705,17 +2301,37 @@ async function main() {
         alreadyPosted
       ) {
 
-        console.log(
-          `⏭️ 既存ニュースと重複: ${article.title}`
-        );
+        /*
+         * 関連記事の一部が既存でも、
+         * 全て既存とは限らないので、
+         * ここではタイトル重複を優先する。
+         */
 
-        continue;
+        const sameTitle =
+          existingArticles.some(
+            old =>
+              old.title &&
+              old.title ===
+                article.title
+          );
+
+
+        if (
+          sameTitle
+        ) {
+
+          console.log(
+            `⏭️ 同じタイトルの記事が既に存在: ${article.title}`
+          );
+
+          continue;
+
+        }
+
       }
 
 
-      /* ===================================================
-         投稿
-      =================================================== */
+      /* 投稿 */
 
       await postToFirebase(
         token,
@@ -1726,30 +2342,26 @@ async function main() {
       posted++;
 
 
-      /*
-       * 連続投稿間隔
-       */
-
-      await new Promise(
-        resolve =>
-          setTimeout(
-            resolve,
-            3000
-          )
+      await sleep(
+        3000
       );
+
 
     } catch (error) {
 
       console.error(
         `❌ 投稿失敗: ${error.message}`
       );
+
     }
+
   }
 
 
   console.log(
     `🏁 完了: ${posted}件投稿`
   );
+
 }
 
 
@@ -1769,5 +2381,6 @@ main()
       process.exit(
         1
       );
+
     }
   );
