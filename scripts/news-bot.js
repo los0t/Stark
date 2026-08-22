@@ -382,6 +382,8 @@ ${candidateText}
 
 必ずJSONのみを出力してください。
 
+JSON以外の文章、説明、前置き、Markdown、コードブロックは絶対に出力しないでください。
+
 {
   "articles": [
     {
@@ -451,9 +453,15 @@ YouTuber・インフルエンサー
             ]
           }
         ],
+
         generationConfig: {
           temperature: 0.4,
-          maxOutputTokens: 7000
+          maxOutputTokens: 7000,
+
+          /*
+           * GeminiにJSON形式での出力を要求
+           */
+          responseMimeType: 'application/json'
         }
       })
     }
@@ -484,25 +492,67 @@ YouTuber・インフルエンサー
 
 
   /*
-   * Geminiが ```json を付けた場合に除去
+   * GeminiのJSON出力を安全に解析
    */
 
-  const cleaned = text
+  let cleaned = text.trim();
+
+
+  /*
+   * Markdownのコードブロックを除去
+   */
+
+  cleaned = cleaned
     .replace(/^```json\s*/i, '')
     .replace(/^```\s*/i, '')
     .replace(/\s*```$/i, '')
     .trim();
 
 
+  /*
+   * JSONの前後に説明文が入ってしまった場合に対応
+   *
+   * 最初の { から最後の } までをJSONとして抽出する。
+   */
+
+  const firstBrace =
+    cleaned.indexOf('{');
+
+  const lastBrace =
+    cleaned.lastIndexOf('}');
+
+
+  if (
+    firstBrace !== -1 &&
+    lastBrace !== -1 &&
+    lastBrace > firstBrace
+  ) {
+    cleaned =
+      cleaned.slice(
+        firstBrace,
+        lastBrace + 1
+      );
+  }
+
+
   let result;
 
+
   try {
-    result = JSON.parse(cleaned);
+
+    result =
+      JSON.parse(cleaned);
+
   } catch (error) {
 
     console.error(
       'Geminiの返答:',
       text
+    );
+
+    console.error(
+      'JSON解析対象:',
+      cleaned
     );
 
     throw new Error(
