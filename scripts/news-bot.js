@@ -4,13 +4,19 @@ import { parseStringPromise } from 'xml2js';
 
 const CONFIG = {
   // 1回の実行で投稿する記事数
-  MAX_ARTICLES: 2,
+  MAX_ARTICLES: 1,
 
   // 1記事につき最低2つの出典
   MIN_SOURCES: 2,
 
   // 使用するGeminiモデル
   MODEL: 'gemini-3.6-flash',
+
+  // 最初にRSSから集める候補数
+  MAX_CANDIDATES: 100,
+
+  // Google検索で集める関連Web記事数
+  MAX_RELATED_SOURCES: 50,
 
   // ニュース候補を集めるRSS
   RSS_FEEDS: [
@@ -212,7 +218,10 @@ async function getExistingArticles(token) {
    Geminiで記事生成
 ========================================================= */
 
-async function generateArticles(candidates, existingArticles) {
+async function generateArticles(
+  candidates,
+  existingArticles
+) {
 
   const previousTitles = existingArticles
     .map(article => article.title)
@@ -220,11 +229,16 @@ async function generateArticles(candidates, existingArticles) {
     .slice(-100);
 
 
+  /* =======================================================
+     最初の100件
+  ======================================================= */
+
   const candidateText = candidates
-    .slice(0, 100)
+    .slice(0, CONFIG.MAX_CANDIDATES)
     .map((article, index) => {
+
       return `
----候補 ${index + 1}---
+---RSS候補 ${index + 1}---
 
 媒体: ${article.source}
 タイトル: ${article.title}
@@ -234,67 +248,557 @@ URL: ${article.url}
 概要:
 ${article.description}
 `;
+
     })
     .join('\n');
 
 
-  const prompt = `
+  /* =======================================================
+     第1段階
+     
+     100件から「最も興味深い話題」を1つ選ぶ
+  ======================================================= */
+
+  const selectionPrompt = `
 あなたは「Ecstasy」という日本語SNSのニュース編集AIです。
 
-以下に複数のニュースRSSから取得したニュース候補があります。
+以下には複数のRSSから取得した最大100件のニュース候補があります。
 
-これらを比較・照合し、
-日本の若者が興味を持ちそうなニュースを2件選び、
-Ecstasy用の記事として作成してください。
+この中から、
+
+「日本の若者が最も興味を持ちそう」
+「何それ？と思わせる」
+「複数の記事を調べる価値がある」
+「ニュースとして記事化する価値が高い」
+
+という基準で、最も興味深いニュースを1つだけ選んでください。
+
+重要：
+
+・ニュース候補に存在する出来事だけを選ぶ
+・架空のニュースを作らない
+・すでに過去に投稿したニュースは避ける
+・単なる一般的なニュースより、話題性の高い出来事を優先する
+・重大事件については特に慎重に判断する
+
+【過去の記事】
+
+${previousTitles.join('\n')}
+
+【RSSニュース候補】
+
+${candidateText}
+
+必ずJSONだけを返してください。
+
+{
+  "topic": "選んだニュースの話題",
+  "reason": "なぜこの話題を選んだのか"
+}
+`;
+
+
+  /* =======================================================
+     第1段階 Gemini API
+  ======================================================= */
+
+  const selectionRes = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+
+        contents: [
+          {
+            parts: [
+              {
+                text: selectionPrompt
+              }
+            ]
+          }
+        ],
+
+        generationConfig: {
+          temperature: 0.4,
+          maxOutputTokens: 2000,
+          responseMimeType: 'application/json'
+        }
+      })
+    }
+  );
+
+
+  const selectionData =
+    await selectionRes.json();
+
+
+  if (!selectionRes.ok) {
+    throw new Error(
+      'Gemini API失敗: ' +
+      JSON.stringify(selectionData)
+    );
+  }
+
+
+  const selectionText =
+    selectionData
+      .candidates?.[0]
+      ?.content?.parts?.[0]
+      ?.text;
+
+
+  if (!selectionText) {
+    throw new Error(
+      'Geminiから話題選択結果が返されませんでした'
+    );
+  }
+
+
+  let selected;
+
+
+  try {
+
+    let cleaned =
+      selectionText.trim();
+
+    cleaned = cleaned
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+
+    const firstBrace =
+      cleaned.indexOf('{');
+
+    const lastBrace =
+      cleaned.lastIndexOf('}');
+
+    if (
+      firstBrace !== -1 &&
+      lastBrace !== -1 &&
+      lastBrace > firstBrace
+    ) {
+      cleaned =
+        cleaned.slice(
+          firstBrace,
+          lastBrace + 1
+        );
+    }
+
+    selected =
+      JSON.parse(cleaned);
+
+  } catch (error) {
+
+    console.error(
+      'Gemini話題選択結果:',
+      selectionText
+    );
+
+    throw new Error(
+      'Geminiの話題選択JSON解析に失敗しました'
+    );
+  }
+
+
+  if (!selected.topic) {
+    throw new Error(
+      'Geminiが話題を選択できませんでした'
+    );
+  }
+
+
+  console.log(
+    `🎯 選択された話題: ${selected.topic}`
+  );
+
+  console.log(
+    `💡 選択理由: ${selected.reason || ''}`
+  );
+
+
+  /* =======================================================
+     第2段階
+     
+     Google検索で関連する記事を最大50件探す
+  ======================================================= */
+
+  const searchPrompt = `
+以下のニュースについて、最新かつ信頼できる情報をGoogle検索で調査してください。
+
+【調査対象】
+
+${selected.topic}
+
+目的：
+
+このニュースについて記事を書くために、
+関連するWeb上の記事・報道をできるだけ多く探してください。
+
+最大50件程度の関連情報源を使用してください。
+
+優先する媒体：
+
+・BBC
+・Reuters
+・AP
+・The Guardian
+・CNN
+・NBC
+・ABC
+・CBS
+・Sky News
+・その他の信頼できる報道機関
+
+検索では、
+
+・事件の発生
+・日時
+・場所
+・関係人物
+・経緯
+・現在の状況
+・公式発表
+・複数媒体による報道
+・背景
+
+などを確認してください。
+
+同じニュースを報じている記事は積極的に比較してください。
+
+噂やSNSの未確認情報だけの記事は、信頼できる情報と区別してください。
+
+架空の情報を作らないでください。
+`;
+
+
+  const searchRes = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+
+      headers: {
+        'Content-Type':
+          'application/json'
+      },
+
+      body: JSON.stringify({
+
+        contents: [
+          {
+            parts: [
+              {
+                text:
+                  searchPrompt
+              }
+            ]
+          }
+        ],
+
+        tools: [
+          {
+            google_search: {}
+          }
+        ],
+
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 7000
+        }
+      })
+    }
+  );
+
+
+  const searchData =
+    await searchRes.json();
+
+
+  if (!searchRes.ok) {
+
+    throw new Error(
+      'Google検索付きGemini API失敗: ' +
+      JSON.stringify(searchData)
+    );
+  }
+
+
+  const searchedText =
+    searchData
+      .candidates?.[0]
+      ?.content?.parts?.[0]
+      ?.text;
+
+
+  if (!searchedText) {
+
+    throw new Error(
+      'Google検索結果が返されませんでした'
+    );
+  }
+
+
+  /* =======================================================
+     Google検索結果から出典URL取得
+  ======================================================= */
+
+  const relatedSources = [];
+
+
+  const groundingMetadata =
+    searchData
+      .candidates?.[0]
+      ?.groundingMetadata;
+
+
+  const groundingChunks =
+    groundingMetadata
+      ?.groundingChunks || [];
+
+
+  for (
+    const chunk
+    of groundingChunks
+  ) {
+
+    const web =
+      chunk.web;
+
+
+    if (
+      web &&
+      web.uri &&
+      web.title
+    ) {
+
+      if (
+        !relatedSources.some(
+          source =>
+            source.url === web.uri
+        )
+      ) {
+
+        relatedSources.push({
+
+          name:
+            web.title,
+
+          url:
+            web.uri
+
+        });
+
+      }
+
+    }
+
+
+    if (
+      relatedSources.length >=
+      CONFIG.MAX_RELATED_SOURCES
+    ) {
+
+      break;
+
+    }
+
+  }
+
+
+  console.log(
+    `🔎 Google検索から ${relatedSources.length}件の関連情報源を取得`
+  );
+
+
+  /* =======================================================
+     RSS候補の出典も追加
+  ======================================================= */
+
+  for (
+    const candidate
+    of candidates
+  ) {
+
+    if (
+      relatedSources.length >=
+      CONFIG.MAX_RELATED_SOURCES
+    ) {
+
+      break;
+
+    }
+
+
+    /*
+     * 選択された話題に関係する
+     * RSS候補だけを追加する
+     */
+
+    const topicWords =
+      selected.topic
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(
+          word =>
+            word.length >= 3
+        );
+
+
+    const candidateTextForMatch =
+      `${candidate.title} ${candidate.description}`
+        .toLowerCase();
+
+
+    const matched =
+      topicWords.length === 0 ||
+      topicWords.some(
+        word =>
+          candidateTextForMatch.includes(
+            word
+          )
+      );
+
+
+    if (!matched) {
+      continue;
+    }
+
+
+    if (
+      !relatedSources.some(
+        source =>
+          source.url ===
+          candidate.url
+      )
+    ) {
+
+      relatedSources.push({
+
+        name:
+          candidate.source,
+
+        url:
+          candidate.url
+
+      });
+
+    }
+
+  }
+
+
+  /* =======================================================
+     第3段階
+     
+     関連記事をまとめて1つの記事にする
+  ======================================================= */
+
+  const relatedSourceText =
+    relatedSources
+      .slice(
+        0,
+        CONFIG.MAX_RELATED_SOURCES
+      )
+      .map(
+        (source, index) => {
+
+          return `
+---関連情報源 ${index + 1}---
+
+媒体:
+${source.name}
+
+URL:
+${source.url}
+`;
+
+        }
+      )
+      .join('\n');
+
+
+  const finalPrompt = `
+あなたは「Ecstasy」という日本語SNSのニュース編集AIです。
+
+これから、1つのニュースについてGoogle検索などで発見した
+複数の情報源をもとに、1本の完成したニュース記事を作成してください。
+
 
 ==================================================
-【最重要：情報の信頼性】
+【今回の記事テーマ】
 ==================================================
 
-- 候補記事に存在する情報だけを使用してください。
-- 架空の情報を作らないでください。
-- 事実と推測を混ぜないでください。
-- 元記事の文章をそのままコピーしないでください。
-- 自分の言葉で要約してください。
-- 重大な内容は特に慎重に扱ってください。
-- 「逮捕」「死亡」「犯罪」「性的スキャンダル」などは、
-  候補情報から明確に確認できる場合だけ使用してください。
-- 噂やSNS上の未確認情報を事実として断定しないでください。
-- 同じ出来事を複数の記事が報じている場合、
-  複数の情報源を比較して共通して確認できる内容を優先してください。
+${selected.topic}
+
 
 ==================================================
-【記事ジャンル】
+【重要】
 ==================================================
 
-以下を優先してください。
+これは「複数の記事をそのまま並べる」作業ではありません。
 
-・海外で起きた珍事件
-・海外のおもしろニュース
-・日本人があまり知らない海外事情
-・意外な法律や制度
-・政治・社会のおもしろい話
-・芸能人のニュース
-・YouTuber
-・インフルエンサー
-・SNSで話題になっている出来事
-・スキャンダル
-・海外の変わった文化
-・「実は○○だった」系の意外な情報
+複数の報道を比較・照合し、
 
-特に、
+・共通して確認できる事実
+・各報道で補足されている情報
+・時系列
+・背景
+・現在の状況
 
-「何それ！？」
-「どういうこと？」
-「詳しく知りたい」
+を整理して、
 
-と思わせるようなニュースを優先してください。
+「このニュースについて最も分かりやすくまとまった1本の記事」
+
+を作ってください。
+
+
+==================================================
+【情報の信頼性】
+==================================================
+
+・架空の情報を作らない
+・検索結果に存在しない事実を追加しない
+・事実と推測を混ぜない
+・元記事をそのままコピーしない
+・自分の言葉で要約する
+・重大な内容は特に慎重に扱う
+・「逮捕」「死亡」「犯罪」「性的スキャンダル」などは、
+  信頼できる情報源で確認できる場合だけ使用する
+・SNS上の未確認情報を事実として断定しない
+・情報源同士で内容が食い違う場合は、断定を避ける
+・古い情報と最新情報を混同しない
+
+
+==================================================
+【記事】
+==================================================
+
+400〜700文字程度。
+
+自然な日本語のニュース記事にしてください。
+
+可能な範囲で、
+
+・何が起きたのか
+・いつ起きたのか
+・どこで起きたのか
+・誰が関係しているのか
+・なぜ話題になったのか
+・現在どうなっているのか
+・背景
+
+を含めてください。
+
 
 ==================================================
 【見出し】
 ==================================================
 
-見出しはSNSで目を引くものにしてください。
+SNSで目を引く見出しにしてください。
 
 例：
 
@@ -308,81 +812,41 @@ Ecstasy用の記事として作成してください。
 
 ・嘘をつかない
 ・事実を歪めない
-・本文にない情報を追加しない
 ・過度に煽らない
 
 こと。
 
-「！？」などの記号は使用して構いません。
-
-==================================================
-【本文】
-==================================================
-
-1記事400〜700文字程度。
-
-以下を自然な文章で説明してください。
-
-・何が起きたのか
-・いつ起きたのか
-・どこで起きたのか
-・誰が関係しているのか
-・なぜ話題になったのか
-・現在どうなっているのか
-・必要なら背景
-
-単なる箇条書きではなく、
-読みやすいニュース記事にしてください。
 
 ==================================================
 【出典】
 ==================================================
 
-非常に重要です。
+記事の内容を裏付ける情報源を最低2つ付けてください。
 
-1記事につき最低2つの異なる情報源を付けてください。
+可能なら複数の異なる報道機関を使用してください。
 
-同じ出来事について複数の候補記事が存在する場合、
-それらを比較して記事を作成してください。
+出典URLは、
 
-出典URLは、必ず候補として与えられたURLの中から選んでください。
+・Google検索で実際に発見されたURL
+・RSS候補として与えられたURL
 
-架空のURLを作らないでください。
+のどちらかだけを使用してください。
 
-できれば、
+架空のURLは禁止です。
 
-・BBC
-・Reuters
-・AP
-・Guardian
-・CNN
-・その他信頼できる報道機関
-
-など、異なる媒体を組み合わせてください。
-
-ただし、候補に存在しない媒体を無理に追加しないでください。
 
 ==================================================
-【過去の記事】
+【検索で発見された関連情報源】
 ==================================================
 
-以下のタイトルと同じニュースは避けてください。
+${relatedSourceText}
 
-${previousTitles.join('\n')}
-
-==================================================
-【ニュース候補】
-==================================================
-
-${candidateText}
 
 ==================================================
 【出力形式】
 ==================================================
 
-必ずJSONのみを出力してください。
-
-JSON以外の文章、説明、前置き、Markdown、コードブロックは絶対に出力しないでください。
+必ずJSONだけを出力してください。
 
 {
   "articles": [
@@ -393,26 +857,11 @@ JSON以外の文章、説明、前置き、Markdown、コードブロックは�
       "sources": [
         {
           "name": "媒体名",
-          "url": "候補として与えられたURL"
+          "url": "実際の出典URL"
         },
         {
           "name": "媒体名",
-          "url": "候補として与えられたURL"
-        }
-      ]
-    },
-    {
-      "title": "記事の見出し",
-      "summary": "400〜700文字程度の記事本文",
-      "category": "芸能",
-      "sources": [
-        {
-          "name": "媒体名",
-          "url": "候補として与えられたURL"
-        },
-        {
-          "name": "媒体名",
-          "url": "候補として与えられたURL"
+          "url": "実際の出典URL"
         }
       ]
     }
@@ -433,22 +882,27 @@ YouTuber・インフルエンサー
 
 
   /* =======================================================
-     Gemini API
+     第3段階 Gemini API
   ======================================================= */
 
-  const res = await fetch(
+  const finalRes = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.MODEL}:generateContent?key=${GEMINI_API_KEY}`,
     {
       method: 'POST',
+
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type':
+          'application/json'
       },
+
       body: JSON.stringify({
+
         contents: [
           {
             parts: [
               {
-                text: prompt
+                text:
+                  finalPrompt
               }
             ]
           }
@@ -458,49 +912,49 @@ YouTuber・インフルエンサー
           temperature: 0.4,
           maxOutputTokens: 7000,
 
-          /*
-           * GeminiにJSON形式での出力を要求
-           */
-          responseMimeType: 'application/json'
+          responseMimeType:
+            'application/json'
         }
       })
     }
   );
 
 
-  const data = await res.json();
+  const finalData =
+    await finalRes.json();
 
 
-  if (!res.ok) {
+  if (!finalRes.ok) {
+
     throw new Error(
-      'Gemini API失敗: ' +
-      JSON.stringify(data)
+      'Gemini記事生成API失敗: ' +
+      JSON.stringify(finalData)
     );
   }
 
 
-  const text =
-    data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const finalText =
+    finalData
+      .candidates?.[0]
+      ?.content?.parts?.[0]
+      ?.text;
 
 
-  if (!text) {
+  if (!finalText) {
+
     throw new Error(
-      'Geminiから記事が返されませんでした: ' +
-      JSON.stringify(data)
+      'Geminiから完成記事が返されませんでした'
     );
   }
 
 
-  /*
-   * GeminiのJSON出力を安全に解析
-   */
+  /* =======================================================
+     JSON解析
+  ======================================================= */
 
-  let cleaned = text.trim();
+  let cleaned =
+    finalText.trim();
 
-
-  /*
-   * Markdownのコードブロックを除去
-   */
 
   cleaned = cleaned
     .replace(/^```json\s*/i, '')
@@ -509,14 +963,9 @@ YouTuber・インフルエンサー
     .trim();
 
 
-  /*
-   * JSONの前後に説明文が入ってしまった場合に対応
-   *
-   * 最初の { から最後の } までをJSONとして抽出する。
-   */
-
   const firstBrace =
     cleaned.indexOf('{');
+
 
   const lastBrace =
     cleaned.lastIndexOf('}');
@@ -527,11 +976,13 @@ YouTuber・インフルエンサー
     lastBrace !== -1 &&
     lastBrace > firstBrace
   ) {
+
     cleaned =
       cleaned.slice(
         firstBrace,
         lastBrace + 1
       );
+
   }
 
 
@@ -547,7 +998,7 @@ YouTuber・インフルエンサー
 
     console.error(
       'Geminiの返答:',
-      text
+      finalText
     );
 
     console.error(
@@ -558,26 +1009,41 @@ YouTuber・インフルエンサー
     throw new Error(
       'GeminiのJSON解析に失敗しました'
     );
+
   }
 
 
-  if (!Array.isArray(result.articles)) {
+  if (
+    !Array.isArray(
+      result.articles
+    )
+  ) {
+
     throw new Error(
       'Geminiのarticlesが配列ではありません'
     );
+
   }
 
 
   return result.articles
     .filter(article => {
+
       return (
         article &&
         article.title &&
         article.summary &&
-        Array.isArray(article.sources)
+        Array.isArray(
+          article.sources
+        )
       );
+
     })
-    .slice(0, CONFIG.MAX_ARTICLES);
+    .slice(
+      0,
+      CONFIG.MAX_ARTICLES
+    );
+
 }
 
 
@@ -585,60 +1051,116 @@ YouTuber・インフルエンサー
    出典URLの検証
 ========================================================= */
 
-function validateSources(article, candidates) {
+function validateSources(
+  article,
+  candidates
+) {
 
-  const candidateUrls = new Set(
-    candidates.map(item => item.url)
-  );
+  const candidateUrls =
+    new Set(
+      candidates.map(
+        item =>
+          item.url
+      )
+    );
 
 
   const validSources = [];
 
 
-  for (const source of article.sources) {
+  for (
+    const source
+    of article.sources
+  ) {
 
     if (
       !source ||
       !source.name ||
       !source.url
     ) {
+
       continue;
+
     }
 
 
-    /*
-     * Geminiが候補にないURLを作っていないか確認
-     */
+    let parsedUrl;
 
-    if (!candidateUrls.has(source.url)) {
+
+    try {
+
+      parsedUrl =
+        new URL(
+          source.url
+        );
+
+    } catch {
 
       console.log(
-        `⚠️ 候補に存在しないURLを除外: ${source.url}`
+        `⚠️ 不正なURLを除外: ${source.url}`
       );
 
       continue;
+
     }
 
 
-    /*
-     * 同じURLの重複を防ぐ
-     */
+    if (
+      parsedUrl.protocol !==
+        'http:' &&
+      parsedUrl.protocol !==
+        'https:'
+    ) {
+
+      continue;
+
+    }
+
+
+    if (
+      candidateUrls.has(
+        source.url
+      )
+    ) {
+
+      console.log(
+        `📰 RSS出典: ${source.name}`
+      );
+
+    } else {
+
+      console.log(
+        `🌐 Google検索出典: ${source.name}`
+      );
+
+    }
+
 
     if (
       !validSources.some(
-        item => item.url === source.url
+        item =>
+          item.url ===
+          source.url
       )
     ) {
 
       validSources.push({
-        name: source.name,
-        url: source.url
+
+        name:
+          source.name,
+
+        url:
+          source.url
+
       });
+
     }
+
   }
 
 
   return validSources;
+
 }
 
 
@@ -646,29 +1168,33 @@ function validateSources(article, candidates) {
    Firebaseへニュース投稿
 ========================================================= */
 
-async function postToFirebase(token, article) {
+async function postToFirebase(
+  token,
+  article
+) {
 
-  const now = Date.now();
+  const now =
+    Date.now();
 
 
   const displayTitle =
     `【${article.category || 'ニュース'}】${article.title}`;
 
 
-  /*
-   * 投稿本文
-   */
-
   let postText =
     `${article.summary}\n\n` +
     `📰 出典\n`;
 
 
-  for (const source of article.sources) {
+  for (
+    const source
+    of article.sources
+  ) {
 
     postText +=
       `・${source.name}\n` +
       `${source.url}\n`;
+
   }
 
 
@@ -676,27 +1202,55 @@ async function postToFirebase(token, article) {
      スレッド作成
   ======================================================= */
 
-  const threadRes = await fetch(
-    `${FIREBASE_DB_URL}/threads.json?auth=${token}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        title: displayTitle.slice(0, 100),
-        createdBy: '🤖 AI NEWS',
-        createdByUid: NEWSBOT_UID,
-        createdByNick: '🤖 AI NEWS',
-        createdAt: now,
-        lastActivity: now,
-        postCount: 1,
-        isNewsThread: true,
-        newsCategory:
-          article.category || 'ニュース'
-      })
-    }
-  );
+  const threadRes =
+    await fetch(
+      `${FIREBASE_DB_URL}/threads.json?auth=${token}`,
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json'
+        },
+
+        body:
+          JSON.stringify({
+
+            title:
+              displayTitle.slice(
+                0,
+                100
+              ),
+
+            createdBy:
+              '🤖 AI NEWS',
+
+            createdByUid:
+              NEWSBOT_UID,
+
+            createdByNick:
+              '🤖 AI NEWS',
+
+            createdAt:
+              now,
+
+            lastActivity:
+              now,
+
+            postCount:
+              1,
+
+            isNewsThread:
+              true,
+
+            newsCategory:
+              article.category ||
+              'ニュース'
+
+          })
+
+      }
+    );
 
 
   const threadData =
@@ -711,8 +1265,11 @@ async function postToFirebase(token, article) {
 
     throw new Error(
       'スレッド作成失敗: ' +
-      JSON.stringify(threadData)
+      JSON.stringify(
+        threadData
+      )
     );
+
   }
 
 
@@ -720,51 +1277,62 @@ async function postToFirebase(token, article) {
      本文投稿
   ======================================================= */
 
-  const postRes = await fetch(
-    `${FIREBASE_DB_URL}/posts/${tid}.json?auth=${token}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
+  const postRes =
+    await fetch(
+      `${FIREBASE_DB_URL}/posts/${tid}.json?auth=${token}`,
+      {
+        method: 'POST',
 
-        uid: NEWSBOT_UID,
+        headers: {
+          'Content-Type':
+            'application/json'
+        },
 
-        userId: 'ai_news',
+        body:
+          JSON.stringify({
 
-        userNick: '🤖 AI NEWS',
+            uid:
+              NEWSBOT_UID,
 
-        text: postText,
+            userId:
+              'ai_news',
 
-        ts: now,
+            userNick:
+              '🤖 AI NEWS',
 
-        isNewsPost: true,
+            text:
+              postText,
 
-        /*
-         * 旧仕様との互換
-         */
+            ts:
+              now,
 
-        newsUrl:
-          article.sources[0]?.url || '',
+            isNewsPost:
+              true,
 
-        newsSource:
-          article.sources
-            .map(source => source.name)
-            .join(', '),
+            newsUrl:
+              article.sources[0]
+                ?.url ||
+              '',
 
-        /*
-         * 複数出典
-         */
+            newsSource:
+              article.sources
+                .map(
+                  source =>
+                    source.name
+                )
+                .join(', '),
 
-        newsSources:
-          article.sources,
+            newsSources:
+              article.sources,
 
-        newsCategory:
-          article.category || 'ニュース'
-      })
-    }
-  );
+            newsCategory:
+              article.category ||
+              'ニュース'
+
+          })
+
+      }
+    );
 
 
   if (!postRes.ok) {
@@ -772,6 +1340,7 @@ async function postToFirebase(token, article) {
     throw new Error(
       `ニュース本文投稿失敗: HTTP ${postRes.status}`
     );
+
   }
 
 
@@ -781,7 +1350,10 @@ async function postToFirebase(token, article) {
 
   const sourceKey =
     article.sources
-      .map(source => source.url)
+      .map(
+        source =>
+          source.url
+      )
       .sort()
       .join('|');
 
@@ -790,40 +1362,55 @@ async function postToFirebase(token, article) {
     Buffer
       .from(sourceKey)
       .toString('base64')
-      .replace(/[.#$/[\]]/g, '_');
+      .replace(
+        /[.#$/[\]]/g,
+        '_'
+      );
 
 
   await fetch(
     `${FIREBASE_DB_URL}/newsArticles/${key}.json?auth=${token}`,
     {
       method: 'PUT',
+
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type':
+          'application/json'
       },
-      body: JSON.stringify({
 
-        title:
-          article.title,
+      body:
+        JSON.stringify({
 
-        url:
-          article.sources[0]?.url || '',
+          title:
+            article.title,
 
-        source:
-          article.sources
-            .map(source => source.name)
-            .join(', '),
+          url:
+            article.sources[0]
+              ?.url ||
+            '',
 
-        sources:
-          article.sources,
+          source:
+            article.sources
+              .map(
+                source =>
+                  source.name
+              )
+              .join(', '),
 
-        category:
-          article.category || 'ニュース',
+          sources:
+            article.sources,
 
-        postedAt:
-          now,
+          category:
+            article.category ||
+            'ニュース',
 
-        tid
-      })
+          postedAt:
+            now,
+
+          tid
+
+        })
+
     }
   );
 
@@ -832,12 +1419,14 @@ async function postToFirebase(token, article) {
     `✅ 投稿完了: ${displayTitle}`
   );
 
+
   console.log(
     `   出典数: ${article.sources.length}`
   );
 
 
   return tid;
+
 }
 
 
@@ -861,7 +1450,9 @@ async function main() {
   /* 過去記事取得 */
 
   const existingArticles =
-    await getExistingArticles(token);
+    await getExistingArticles(
+      token
+    );
 
 
   console.log(
@@ -873,13 +1464,19 @@ async function main() {
      複数RSSからニュース候補を取得
   ======================================================= */
 
-  let allCandidates = [];
+  let allCandidates =
+    [];
 
 
-  for (const feed of CONFIG.RSS_FEEDS) {
+  for (
+    const feed
+    of CONFIG.RSS_FEEDS
+  ) {
 
     const articles =
-      await fetchRSS(feed);
+      await fetchRSS(
+        feed
+      );
 
 
     console.log(
@@ -888,7 +1485,10 @@ async function main() {
 
 
     allCandidates =
-      allCandidates.concat(articles);
+      allCandidates.concat(
+        articles
+      );
+
   }
 
 
@@ -903,20 +1503,31 @@ async function main() {
     new Map();
 
 
-  for (const article of allCandidates) {
+  for (
+    const article
+    of allCandidates
+  ) {
 
-    if (!uniqueMap.has(article.url)) {
+    if (
+      !uniqueMap.has(
+        article.url
+      )
+    ) {
 
       uniqueMap.set(
         article.url,
         article
       );
+
     }
+
   }
 
 
   allCandidates =
-    Array.from(uniqueMap.values());
+    Array.from(
+      uniqueMap.values()
+    );
 
 
   /*
@@ -924,16 +1535,28 @@ async function main() {
    */
 
   allCandidates =
-    allCandidates.slice(0, 100);
+    allCandidates.slice(
+      0,
+      CONFIG.MAX_CANDIDATES
+    );
 
 
-  if (allCandidates.length === 0) {
+  console.log(
+    `📚 Geminiへ送信する候補: ${allCandidates.length}件`
+  );
+
+
+  if (
+    allCandidates.length ===
+    0
+  ) {
 
     console.log(
       '⚠️ ニュース候補がありません'
     );
 
     return;
+
   }
 
 
@@ -942,7 +1565,7 @@ async function main() {
   ======================================================= */
 
   console.log(
-    '🤖 Geminiでニュースを分析・記事化中...'
+    '🤖 100件から最も興味深い話題を選択中...'
   );
 
 
@@ -964,11 +1587,12 @@ async function main() {
     );
 
     throw error;
+
   }
 
 
   console.log(
-    `🤖 Geminiが ${articles.length}件の記事を生成`
+    `🤖 完成記事: ${articles.length}件`
   );
 
 
@@ -976,27 +1600,72 @@ async function main() {
      記事をFirebaseへ投稿
   ======================================================= */
 
-  let posted = 0;
+  let posted =
+    0;
 
 
-  for (const article of articles) {
+  for (
+    const article
+    of articles
+  ) {
 
     try {
 
       /*
-       * Geminiが返した出典URLを検証
+       * Google検索結果を含むため、
+       * ここでは候補URLだけでなく
+       * Geminiが返したURLを検証する。
+       *
+       * ただし、generateArticles内で
+       * Google検索結果URLを保持しているため、
+       * ここでは最低限のURL検証を行う。
        */
 
       const validSources =
-        validateSources(
-          article,
-          allCandidates
-        );
+        article.sources
+          .filter(source => {
+
+            if (
+              !source ||
+              !source.name ||
+              !source.url
+            ) {
+
+              return false;
+
+            }
 
 
-      /*
-       * 最低2つの出典が必要
-       */
+            try {
+
+              const url =
+                new URL(
+                  source.url
+                );
+
+              return (
+                url.protocol ===
+                  'http:' ||
+                url.protocol ===
+                  'https:'
+              );
+
+            } catch {
+
+              return false;
+
+            }
+
+          })
+          .filter(
+            (source, index, array) =>
+              array.findIndex(
+                item =>
+                  item.url ===
+                  source.url
+              ) === index
+          );
+
 
       if (
         validSources.length <
@@ -1012,6 +1681,7 @@ async function main() {
         );
 
         continue;
+
       }
 
 
@@ -1019,14 +1689,17 @@ async function main() {
         validSources;
 
 
-      /*
-       * 過去記事との重複確認
-       */
+      /* ===================================================
+         過去記事との重複確認
+      =================================================== */
 
       const existingUrls =
         new Set(
           existingArticles
-            .map(item => item.url)
+            .map(
+              item =>
+                item.url
+            )
             .filter(Boolean)
         );
 
@@ -1034,17 +1707,22 @@ async function main() {
       const alreadyPosted =
         article.sources.some(
           source =>
-            existingUrls.has(source.url)
+            existingUrls.has(
+              source.url
+            )
         );
 
 
-      if (alreadyPosted) {
+      if (
+        alreadyPosted
+      ) {
 
         console.log(
           `⏭️ 既存ニュースと重複: ${article.title}`
         );
 
         continue;
+
       }
 
 
@@ -1063,22 +1741,30 @@ async function main() {
        * API連続実行を少し避ける
        */
 
-      await new Promise(resolve =>
-        setTimeout(resolve, 3000)
+      await new Promise(
+        resolve =>
+          setTimeout(
+            resolve,
+            3000
+          )
       );
+
 
     } catch (error) {
 
       console.error(
         `❌ 投稿失敗: ${error.message}`
       );
+
     }
+
   }
 
 
   console.log(
     `🏁 完了: ${posted}件投稿`
   );
+
 }
 
 
@@ -1086,12 +1772,17 @@ async function main() {
    実行
 ========================================================= */
 
-main().catch(error => {
+main().catch(
+  error => {
 
-  console.error(
-    '致命的エラー:',
-    error
-  );
+    console.error(
+      '致命的エラー:',
+      error
+    );
 
-  process.exit(1);
-});
+    process.exit(
+      1
+    );
+
+  }
+);
