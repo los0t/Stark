@@ -1,1 +1,31 @@
+name: News Bot
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  fetch-news:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install node-fetch xml2js
+
+      - name: Run news bot
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          FIREBASE_DB_URL: ${{ secrets.FIREBASE_DB_URL }}
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          NEWSBOT_EMAIL: ${{ secrets.NEWSBOT_EMAIL }}
+          NEWSBOT_PASSWORD: ${{ secrets.NEWSBOT_PASSWORD }}
+          NEWSBOT_UID: ${{ secrets.NEWSBOT_UID }}
+        run: node scripts/news-bot.js
 
