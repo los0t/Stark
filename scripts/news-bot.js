@@ -5,7 +5,7 @@ import { parseStringPromise } from 'xml2js';
 const CONFIG = {
   MAX_ARTICLES: 1,
   MIN_SOURCES: 1,
-  MODEL: 'gemini-1.5-flash',
+  MODEL: 'gemini-2.0-flash',
   MAX_CANDIDATES: 1000,
   RSS_FEEDS: [
     { url: 'https://feeds.bbci.co.uk/news/world/rss.xml', source: 'BBC News' },
