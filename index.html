@@ -140,6 +140,8 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
 .img-prev{width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid #111;display:block}
 .img-prev-del{position:absolute;top:2px;right:-10px;background:#111;color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .input-bar{display:flex;align-items:flex-end;gap:8px;padding:10px 14px 14px;background:#fff;border-top:2px solid #111;flex-shrink:0}
+.input-bar.hidden{display:none}
+.guest-notice{text-align:center;padding:12px;font-size:13px;color:#888;background:#f4f4f4;border-top:1px solid #ddd;flex-shrink:0}
 #post-input{flex:1;background:#f4f4f4;border:2px solid #111;border-radius:12px;color:#111;font-family:inherit;font-size:15px;padding:10px 14px;outline:none;resize:none;min-height:42px;max-height:100px;line-height:1.5;-webkit-appearance:none}
 #post-input:focus{background:#fff}
 #post-input::placeholder{color:#aaa}
@@ -185,6 +187,9 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
     <p class="auth-desc">ようこそ</p>
     <button class="auth-btn" id="btn-go-login">ログイン</button>
     <button class="auth-btn white" id="btn-go-register">新規登録</button>
+    <hr class="auth-divider">
+    <button class="auth-btn" id="btn-guest" style="background:#555;border-color:#555">👁 ゲストで見る</button>
+    <p style="font-size:11px;color:#aaa;text-align:center">ゲストはいいねのみ可能・コメント不可</p>
   </div>
 </div>
 <div id="pg-login" class="pg">
@@ -263,6 +268,7 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
     <div class="news-panel-cat" id="panel-cat"></div>
     <div class="news-panel-title" id="panel-title"></div>
     <div class="news-panel-meta" id="panel-meta"></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px" id="panel-views"></div>
     <div class="news-panel-body" id="panel-body"></div>
     <div style="display:flex;gap:10px;margin-bottom:10px">
       <button class="like-btn" id="panel-like-btn" style="flex:1;justify-content:center;padding:10px">🤍 <span id="panel-like-count"></span></button>
@@ -372,6 +378,7 @@ let myUid=null,myAccountId=null,myNick=null;
 let curTid=null,replyTo=null,pendingImg=null;
 let adminTab='accounts',isNewUser=false;
 let currentPanelThread=null;
+let isGuest=false;
 
 // 画像上限
 const IMG_LIMIT=5;
@@ -387,7 +394,7 @@ const COLS=['#5b52e8','#e85290','#16a34a','#d97706','#0284c7','#9333ea','#0891b2
 const col=id=>COLS[String(id).split('').reduce((a,c)=>a+c.charCodeAt(0),0)%COLS.length];
 const fmt=ts=>{if(!ts)return'';const d=new Date(ts);return`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;};
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const displayName=()=>myNick?`${myNick}(@${myAccountId})`:`@${myAccountId}`;
+const displayName=()=>isGuest?'ゲスト':myNick?`${myNick}(@${myAccountId})`:`@${myAccountId}`;
 const isAdmin=()=>myUid===ADMIN_UID;
 const validAccountId=v=>/^[a-zA-Z0-9._]+$/.test(v)&&v.length>=3;
 
@@ -410,6 +417,7 @@ function compress(file){return new Promise((res,rej)=>{const r=new FileReader();
 
 // ════ Auth状態 ════
 onAuthStateChanged(auth,async user=>{
+  if(isGuest)return;
   if(!user){myUid=null;myAccountId=null;myNick=null;go('pg-start');return;}
   myUid=user.uid;
   if(isAdmin()){
@@ -428,6 +436,14 @@ onAuthStateChanged(auth,async user=>{
 // ════ スタート ════
 document.getElementById('btn-go-login').onclick=()=>go('pg-login');
 document.getElementById('btn-go-register').onclick=()=>go('pg-register');
+document.getElementById('btn-guest').onclick=()=>{
+  isGuest=true;myUid='guest_'+Math.random().toString(36).slice(2);
+  myAccountId=null;myNick=null;
+  document.getElementById('badge-list').textContent='👁 ゲスト';
+  document.getElementById('badge-thread').textContent='👁 ゲスト';
+  go('pg-list');
+  initGlobe();
+};
 
 // ════ ログイン ════
 document.getElementById('btn-login-back').onclick=()=>go('pg-start');
@@ -647,28 +663,60 @@ function onMouseMove(e){
 }
 function onMouseUp(){isDragging=false;}
 
+// 閲覧数に応じたスケール計算（最小1.0、最大2.0）
+function getViewScale(views){
+  if(!views||views<=0)return 1.0;
+  return Math.min(2.0, 1.0 + Math.log10(views+1)*0.5);
+}
+
+// 吹き出しサイズを閲覧数に応じて更新
+function updateBubbleSizes(){
+  let bIdx=0;
+  globeThreads.forEach(t=>{
+    const bubble=bubbleEls[bIdx*2+1];
+    if(bubble){
+      const scale=getViewScale(t.views||0);
+      bubble.style.transform=`translate(-50%,-100%) scale(${scale})`;
+      // 閲覧数が多いと赤みがかる
+      if(t.views>=100) bubble.style.borderColor='#e53935';
+      else if(t.views>=10) bubble.style.borderColor='#f97316';
+      else bubble.style.borderColor='#111';
+    }
+    bIdx++;
+  });
+}
+
 // 吹き出し描画
 function renderBubbles(){
-  // 既存の吹き出しを削除
   bubbleEls.forEach(el=>el.remove());
   bubbleEls=[];
   const wrap=document.getElementById('globe-wrap');
+
+  // Firebaseから閲覧数を取得してthreadsに反映
+  get(ref(db,'threads')).then(snap=>{
+    const data=snap.val()||{};
+    globeThreads.forEach(t=>{
+      if(data[t.tid])t.views=data[t.tid].views||0;
+    });
+    updateBubbleSizes();
+  });
+
   globeThreads.forEach(t=>{
     const dot=document.createElement('div');
     dot.className='bubble-dot';
     wrap.appendChild(dot);
     const bubble=document.createElement('div');
     bubble.className='bubble';
-    // タイトルから【】を除く
     const title=t.title.replace(/^【|】$/g,'');
     const shortTitle=title.length>30?title.slice(0,30)+'…':title;
-    bubble.innerHTML=`${esc(shortTitle)}<div class="bubble-date">${fmt(t.createdAt)} · ${esc(t.country||'')}</div>`;
+    const views=t.views||0;
+    const viewsStr=views>0?` · 👀${views}`:'';
+    bubble.innerHTML=`${esc(shortTitle)}<div class="bubble-date">${fmt(t.createdAt)} · ${esc(t.country||'')}${viewsStr}</div>`;
     bubble.addEventListener('click',()=>openNewsPanel(t));
     bubble.addEventListener('touchend',e=>{e.preventDefault();openNewsPanel(t);});
     wrap.appendChild(bubble);
     bubbleEls.push(dot,bubble);
     dot._thread=t;bubble._thread=t;
-    dot._isDot=true;bubble._isBubble=true;
   });
 }
 
@@ -702,6 +750,10 @@ function updateBubbles(){
       dot.style.display='block';bubble.style.display='block';
       dot.style.left=sx+'px';dot.style.top=sy+'px';
       bubble.style.left=sx+'px';bubble.style.top=(sy-10)+'px';
+      // 閲覧数スケール適用
+      const scale=getViewScale(t.views||0);
+      bubble.style.transformOrigin='bottom center';
+      bubble.style.transform=`translate(-50%,-100%) scale(${scale})`;
     }
     bIdx++;
   });
@@ -716,6 +768,17 @@ function openNewsPanel(t){
   document.getElementById('panel-meta').textContent=`${fmt(t.createdAt)} · ${t.country||''}`;
   document.getElementById('panel-body').textContent='読み込み中...';
   document.getElementById('panel-like-count').textContent='';
+
+  // 閲覧数をインクリメント
+  const viewRef=ref(db,`threads/${t.tid}/views`);
+  get(viewRef).then(snap=>{
+    const newViews=(snap.val()||0)+1;
+    set(viewRef,newViews);
+    document.getElementById('panel-views').textContent=`👀 ${newViews}`;
+    // 閲覧数に応じて吹き出しサイズ更新
+    t.views=newViews;
+    updateBubbleSizes();
+  });
 
   // 本文取得（最初の投稿）
   get(ref(db,`posts/${t.tid}`)).then(snap=>{
@@ -773,6 +836,25 @@ function enterThread(tid,title){
   document.getElementById('img-btn').classList.remove('on');
   document.getElementById('post-input').value='';
   document.getElementById('posts-area').innerHTML='<div style="text-align:center;color:#888;padding:40px 20px">読み込み中...</div>';
+
+  // ゲストは入力欄非表示
+  const inputBar=document.getElementById('pg-thread').querySelector('.input-bar');
+  let guestNotice=document.getElementById('guest-notice');
+  if(isGuest){
+    if(inputBar)inputBar.classList.add('hidden');
+    if(!guestNotice){
+      guestNotice=document.createElement('div');
+      guestNotice.id='guest-notice';
+      guestNotice.className='guest-notice';
+      guestNotice.textContent='💬 コメントするにはログインが必要です';
+      document.getElementById('pg-thread').appendChild(guestNotice);
+    }
+    guestNotice.style.display='block';
+  } else {
+    if(inputBar)inputBar.classList.remove('hidden');
+    if(guestNotice)guestNotice.style.display='none';
+  }
+
   go('pg-thread');
   onValue(ref(db,`posts/${tid}`),snap=>{if(curTid!==tid)return;renderPosts(snap.val()||{});});
 }
