@@ -45,7 +45,7 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
 .hdr-thread-title{flex:1;font-size:14px;font-weight:700;color:#fff;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 
 /* 地球儀 */
-#globe-wrap{flex:1;position:relative;overflow:hidden;background:radial-gradient(ellipse at center,#0a0a2e 0%,#000 100%)}
+#globe-wrap{flex:1;position:relative;overflow:hidden;background:radial-gradient(ellipse at center,#0d1b3e 0%,#000820 100%)}
 #globe-canvas{width:100%;height:100%;display:block;touch-action:none}
 .globe-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px}
 
@@ -531,16 +531,40 @@ function initGlobe(){
 
   // 地球儀
   const geo=new THREE.SphereGeometry(1,64,64);
-  const loader=new THREE.TextureLoader();
+  // Canvasでシンプルな地球テクスチャを生成（外部URL不要）
+  const cvTex=document.createElement('canvas');
+  cvTex.width=1024;cvTex.height=512;
+  const ctx=cvTex.getContext('2d');
+  // 海
+  ctx.fillStyle='#1a4a7a';ctx.fillRect(0,0,1024,512);
+  // 大陸（シンプルな形）
+  ctx.fillStyle='#2d5a1b';
+  // アフリカ
+  ctx.fillRect(480,160,80,180);
+  // ユーラシア
+  ctx.fillRect(420,80,320,140);
+  // 北米
+  ctx.fillRect(120,80,180,160);
+  // 南米
+  ctx.fillRect(200,240,100,160);
+  // オーストラリア
+  ctx.fillRect(700,260,120,80);
+  // グリッド線
+  ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;
+  for(let i=0;i<=8;i++){ctx.beginPath();ctx.moveTo(i*128,0);ctx.lineTo(i*128,512);ctx.stroke();}
+  for(let i=0;i<=4;i++){ctx.beginPath();ctx.moveTo(0,i*128);ctx.lineTo(1024,i*128);ctx.stroke();}
+  const tex=new THREE.CanvasTexture(cvTex);
 
-  // テクスチャ（地球のフリー素材）
-  const tex=loader.load(
-    'https://raw.githubusercontent.com/turban/webgl-earth/master/images/2_no_clouds_4k.jpg',
-    ()=>{document.getElementById('globe-loading').style.display='none';}
+  // 外部テクスチャも試みる（成功したら差し替え）
+  new THREE.TextureLoader().load(
+    'https://unpkg.com/three-globe/example/img/earth-day.jpg',
+    t=>{globeSphere.material.map=t;globeSphere.material.needsUpdate=true;}
   );
-  const mat=new THREE.MeshPhongMaterial({map:tex,specular:new THREE.Color(0x333333),shininess:5});
+
+  const mat=new THREE.MeshPhongMaterial({map:tex,specular:new THREE.Color(0x222222),shininess:8});
   globeSphere=new THREE.Mesh(geo,mat);
   globeScene.add(globeSphere);
+  document.getElementById('globe-loading').style.display='none';
 
   // 大気
   const atmGeo=new THREE.SphereGeometry(1.02,64,64);
@@ -661,16 +685,15 @@ function updateBubbles(){
     const worldPos=pos.clone().applyEuler(globeSphere.rotation);
     const projected=worldPos.clone().project(globeCamera);
 
-    // 裏側か判定
-    const isFront=worldPos.dot(new THREE.Vector3(0,0,1).applyQuaternion(globeCamera.quaternion))>0||worldPos.z>0;
-    // カメラから見て手前かどうか
-    const camDir=new THREE.Vector3(0,0,-1).applyQuaternion(globeCamera.quaternion);
-    const visible=worldPos.dot(camDir)<-0.1;
+    // カメラ方向との内積で表面が見えているか判定
+    const camPos=new THREE.Vector3(0,0,2.8); // カメラ位置
+    const toCam=camPos.clone().sub(worldPos).normalize();
+    const isFront=worldPos.clone().normalize().dot(toCam)>0;
 
     const sx=(projected.x+1)/2*w;
     const sy=(-(projected.y)+1)/2*h;
 
-    if(visible||projected.z>1){
+    if(!isFront||projected.z>1||sx<0||sx>w||sy<0||sy>h){
       dot.style.display='none';bubble.style.display='none';
     } else {
       dot.style.display='block';bubble.style.display='block';
