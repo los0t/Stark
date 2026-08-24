@@ -88,63 +88,47 @@ async function getExistingArticles(token) {
   return data ? Object.values(data) : [];
 }
 
-// Geminiで記事生成（座標付き）
-async function generateArticles(candidates, existingArticles) {
-  const previousTitles = existingArticles.map(a => a.title).filter(Boolean).slice(-100);
-  const candidateText = candidates.map((a, i) => `
+// Geminiで記事を1件生成
+async function generateOneArticle(candidates, usedUrls, usedTitles) {
+  // 未使用の候補をランダムに50件選ぶ
+  const unused = candidates.filter(c => !usedUrls.has(c.url));
+  const sample = unused.sort(() => Math.random() - 0.5).slice(0, 50);
+  if (!sample.length) return null;
+
+  const candidateText = sample.map((a, i) => `
 ---候補 ${i + 1}---
 媒体: ${a.source}
 タイトル: ${a.title}
-公開日時: ${a.pubDate}
 URL: ${a.url}
-概要: ${a.description}
+概要: ${a.description.slice(0, 200)}
 `).join('\n');
 
   const prompt = `
 あなたは「Ecstasy」という日本語SNSのニュース編集AIです。
 
-以下のニュース候補から日本の若者が「何それ！？」と思う最も興味深い出来事を1つ選び、記事を生成してください。
+以下の候補から日本の若者が「何それ！？」と思う最も興味深い出来事を1つ選び、記事を生成してください。
 
-【情報の信頼性】
-- 候補記事の情報のみ使用
-- 架空の情報を作らない
-- 元記事をコピーしない
+【禁止】
+- 架空の情報を追加しない
+- 過去に使ったタイトルと似たものを選ばない
+- URLは候補にあるものだけ使う
 
-【ニュース選択の優先順位】
-- 海外の珍事件・面白ニュース
-- 芸能人・YouTuber・インフルエンサー
-- SNSで話題の出来事
-- スキャンダル・政治社会
-- 「何それ！？」と思わせるもの
+【過去に使ったタイトル（重複禁止）】
+${[...usedTitles].slice(-50).join('\n')}
 
-【座標について】
-そのニュースが発生した国・地域の代表的な緯度経度を指定してください。
-国レベルの大まかな位置で構いません。
-例：日本→{"lat":35.7,"lng":139.7}、アメリカ→{"lat":38.9,"lng":-77.0}、イギリス→{"lat":51.5,"lng":-0.1}
-
-【過去の記事（重複を避ける）】
-${previousTitles.join('\n')}
-
-【ニュース候補】
+【候補】
 ${candidateText}
 
-【出力形式】
-JSONのみ出力。説明文・前置き・Markdownは不要。
+【出力形式】JSONのみ。説明文不要。
 
 {
-  "articles": [
-    {
-      "title": "SNSで思わず読みたくなるタイトル（事実を歪めない）",
-      "summary": "400〜700文字の記事本文（何が・いつ・どこで・誰が・なぜ・現在どうか）",
-      "category": "海外事件",
-      "country": "国名（日本語）",
-      "lat": 緯度（数値）,
-      "lng": 経度（数値）,
-      "sources": [
-        { "name": "媒体名", "url": "候補のURL" }
-      ]
-    }
-  ]
+  "title": "タイトル",
+  "summary": "300〜500文字の記事本文",
+  "category": "カテゴリ",
+  "country": "国名（日本語）",
+  "lat": 緯度,
+  "lng": 経度,
+  "sources": [{ "name": "媒体名", "url": "候補のURL" }]
 }
 
 categoryは「海外事件」「海外ニュース」「政治・社会」「芸能」「YouTuber・インフルエンサー」「スキャンダル」「雑学」「その他」のいずれか。
@@ -157,7 +141,7 @@ categoryは「海外事件」「海外ニュース」「政治・社会」「芸
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: 7000, responseMimeType: 'application/json' }
+        generationConfig: { temperature: 0.7, maxOutputTokens: 1500, responseMimeType: 'application/json' }
       })
     }
   );
@@ -166,21 +150,21 @@ categoryは「海外事件」「海外ニュース」「政治・社会」「芸
   if (!res.ok) throw new Error('Gemini API失敗: ' + JSON.stringify(data));
 
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error('Geminiから記事が返されませんでした');
+  if (!text) return null;
 
-  let cleaned = text.trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
-  const firstBrace = cleaned.indexOf('{');
-  const lastBrace = cleaned.lastIndexOf('}');
-  if (firstBrace !== -1 && lastBrace !== -1) cleaned = cleaned.slice(firstBrace, lastBrace + 1);
+  let cleaned = text.trim().replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```$/i,'').trim();
+  const first = cleaned.indexOf('{');
+  const last = cleaned.lastIndexOf('}');
+  if (first === -1 || last === -1) return null;
+  cleaned = cleaned.slice(first, last + 1);
 
-  let result;
-  try { result = JSON.parse(cleaned); } catch (e) {
-    console.error('JSON解析失敗:', cleaned);
-    throw new Error('GeminiのJSON解析に失敗');
+  try {
+    const a = JSON.parse(cleaned);
+    if (!a.title || !a.summary || !Array.isArray(a.sources) || a.lat == null || a.lng == null) return null;
+    return a;
+  } catch(e) {
+    return null;
   }
-
-  if (!Array.isArray(result.articles)) throw new Error('articlesが配列ではない');
-  return result.articles.filter(a => a && a.title && a.summary && Array.isArray(a.sources) && a.lat != null && a.lng != null).slice(0, CONFIG.MAX_ARTICLES);
 }
 
 // 出典URL検証
@@ -302,31 +286,36 @@ async function main() {
 
   if (!allCandidates.length) { console.log('⚠️ 候補なし'); return; }
 
-  let articles;
-  try {
-    articles = await generateArticles(allCandidates, existingArticles);
-  } catch (e) {
-    console.error(`❌ 記事生成失敗: ${e.message}`);
-    throw e;
-  }
-
-  console.log(`🤖 ${articles.length}件生成`);
+  const usedUrls = new Set();
+  const usedTitles = new Set();
   let posted = 0;
+  let failCount = 0;
 
-  for (const article of articles) {
+  while (posted < CONFIG.MAX_ARTICLES && failCount < 10) {
     try {
+      console.log(`🤖 記事生成中... (${posted + 1}/${CONFIG.MAX_ARTICLES})`);
+      const article = await generateOneArticle(allCandidates, usedUrls, usedTitles);
+      if (!article) { failCount++; continue; }
+
       const validSources = validateSources(article, allCandidates);
-      if (validSources.length < CONFIG.MIN_SOURCES) { console.log(`⚠️ 出典不足: ${article.title}`); continue; }
+      if (validSources.length < CONFIG.MIN_SOURCES) {
+        console.log(`⚠️ 出典不足: ${article.title}`);
+        failCount++;
+        continue;
+      }
       article.sources = validSources;
 
-      const existingUrls = new Set(existingArticles.map(a => a.url).filter(Boolean));
-      if (article.sources.some(s => existingUrls.has(s.url))) { console.log(`⏭️ 重複: ${article.title}`); continue; }
+      // 使用済みURLとして記録
+      validSources.forEach(s => usedUrls.add(s.url));
+      usedTitles.add(article.title);
 
       await postToFirebase(token, article);
       posted++;
-      await new Promise(r => setTimeout(r, 3000));
+      failCount = 0;
+      await new Promise(r => setTimeout(r, 2000));
     } catch (e) {
-      console.error(`❌ 投稿失敗: ${e.message}`);
+      console.error(`❌ 生成/投稿失敗: ${e.message}`);
+      failCount++;
     }
   }
 
