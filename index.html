@@ -264,6 +264,9 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
     <div class="news-panel-title" id="panel-title"></div>
     <div class="news-panel-meta" id="panel-meta"></div>
     <div class="news-panel-body" id="panel-body"></div>
+    <div style="display:flex;gap:10px;margin-bottom:10px">
+      <button class="like-btn" id="panel-like-btn" style="flex:1;justify-content:center;padding:10px">🤍 <span id="panel-like-count"></span></button>
+    </div>
     <button class="news-panel-btn" id="panel-enter-btn">このスレに入る 💬</button>
   </div>
 </div>
@@ -707,23 +710,38 @@ function updateBubbles(){
 // ニュース詳細パネル
 function openNewsPanel(t){
   currentPanelThread=t;
-  // タイトルから【】を除く
   const title=t.title.replace(/^【|】$/g,'');
   document.getElementById('panel-cat').textContent=t.newsCategory||'ニュース';
   document.getElementById('panel-title').textContent=title;
   document.getElementById('panel-meta').textContent=`${fmt(t.createdAt)} · ${t.country||''}`;
+  document.getElementById('panel-body').textContent='読み込み中...';
+  document.getElementById('panel-like-count').textContent='';
 
   // 本文取得（最初の投稿）
   get(ref(db,`posts/${t.tid}`)).then(snap=>{
     const posts=snap.val()||{};
-    const entries=Object.values(posts).sort((a,b)=>(a.ts||0)-(b.ts||0));
+    const entries=Object.entries(posts).sort((a,b)=>(a[1].ts||0)-(b[1].ts||0));
     if(entries.length){
-      // タイトル行を除いた本文
-      const text=entries[0].text||'';
+      const [firstPid, firstPost] = entries[0];
+      const text=firstPost.text||'';
       const lines=text.split('\n');
-      // 最初の【タイトル】行を除外
       const body=lines.filter(l=>!l.startsWith('【')||l.includes('出典')).join('\n').trim();
       document.getElementById('panel-body').textContent=body;
+
+      // いいね表示
+      const likes=firstPost.likes||{};
+      const likeCount=Object.keys(likes).length;
+      const iLiked=myUid&&!!likes[myUid];
+      const likeBtn=document.getElementById('panel-like-btn');
+      likeBtn.className='like-btn'+(iLiked?' on':'');
+      likeBtn.innerHTML=`${iLiked?'❤️':'🤍'} <span id="panel-like-count">${likeCount||''}</span>`;
+      likeBtn.onclick=async()=>{
+        if(!myUid)return;
+        const postRef=ref(db,`posts/${t.tid}/${firstPid}/likes`);
+        if(iLiked)await remove(ref(db,`posts/${t.tid}/${firstPid}/likes/${myUid}`));
+        else await update(postRef,{[myUid]:true});
+        openNewsPanel(t); // 再読み込みして反映
+      };
     }
   });
 
@@ -741,8 +759,9 @@ function closeNewsPanel(){
 
 document.getElementById('panel-enter-btn').onclick=()=>{
   if(!currentPanelThread)return;
+  const t=currentPanelThread;
   closeNewsPanel();
-  enterThread(currentPanelThread.tid,currentPanelThread.title);
+  setTimeout(()=>enterThread(t.tid,t.title),100);
 };
 
 // ════ スレッド内 ════
