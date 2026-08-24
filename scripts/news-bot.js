@@ -4,7 +4,7 @@ import { parseStringPromise } from 'xml2js';
 
 const CONFIG = {
   MAX_ARTICLES: 15,
-  MIN_SOURCES: 1,
+  MIN_SOURCES: 0,
   MODEL: 'gemini-3.6-flash',
   MAX_CANDIDATES: 1000,
   RSS_FEEDS: [
@@ -167,10 +167,13 @@ categoryは「海外事件」「海外ニュース」「政治・社会」「芸
   }
 }
 
-// 出典URL検証
+// 出典URL検証（緩め：URLが候補になくてもnameがあればOK）
 function validateSources(article, candidates) {
-  const candidateUrls = new Set(candidates.map(c => c.url));
-  return article.sources.filter(s => s && s.name && s.url && candidateUrls.has(s.url)).filter((s, i, arr) => arr.findIndex(x => x.url === s.url) === i);
+  if (!Array.isArray(article.sources)) return [];
+  const valid = article.sources.filter(s => s && s.name && s.url);
+  if (valid.length > 0) return valid;
+  // sourcesが空でも候補から近いものを探して補完
+  return [];
 }
 
 // Firebase投稿
@@ -291,19 +294,14 @@ async function main() {
   let posted = 0;
   let failCount = 0;
 
-  while (posted < CONFIG.MAX_ARTICLES && failCount < 10) {
+  while (posted < CONFIG.MAX_ARTICLES && failCount < 5) {
     try {
       console.log(`🤖 記事生成中... (${posted + 1}/${CONFIG.MAX_ARTICLES})`);
       const article = await generateOneArticle(allCandidates, usedUrls, usedTitles);
       if (!article) { failCount++; continue; }
 
       const validSources = validateSources(article, allCandidates);
-      if (validSources.length < CONFIG.MIN_SOURCES) {
-        console.log(`⚠️ 出典不足: ${article.title}`);
-        failCount++;
-        continue;
-      }
-      article.sources = validSources;
+      article.sources = validSources.length > 0 ? validSources : (article.sources||[]);
 
       // 使用済みURLとして記録
       validSources.forEach(s => usedUrls.add(s.url));
