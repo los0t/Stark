@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 import { parseStringPromise } from 'xml2js';
 
 const CONFIG = {
-  MAX_ARTICLES: 35,
+  MAX_ARTICLES: 15,
   MIN_SOURCES: 1,
   MODEL: 'gemini-3.6-flash',
   MAX_CANDIDATES: 1000,
