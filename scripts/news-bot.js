@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 import { parseStringPromise } from 'xml2js';
 
 const CONFIG = {
-  MAX_ARTICLES: 1,
+  MAX_ARTICLES: 35,
   MIN_SOURCES: 1,
   MODEL: 'gemini-3.6-flash',
   MAX_CANDIDATES: 1000,
@@ -261,12 +261,31 @@ async function postToFirebase(token, article) {
   return tid;
 }
 
+// 全スレッド・投稿・記事キャッシュを削除
+async function clearAllThreads(token) {
+  console.log('🗑️ 既存スレッドを全削除中...');
+  const res = await fetch(`${FIREBASE_DB_URL}/threads.json?auth=${token}`);
+  const threads = await res.json();
+  if (threads) {
+    for (const tid of Object.keys(threads)) {
+      await fetch(`${FIREBASE_DB_URL}/posts/${tid}.json?auth=${token}`, { method: 'DELETE' });
+      await fetch(`${FIREBASE_DB_URL}/threads/${tid}.json?auth=${token}`, { method: 'DELETE' });
+    }
+  }
+  await fetch(`${FIREBASE_DB_URL}/newsArticles.json?auth=${token}`, { method: 'DELETE' });
+  console.log('✅ 全削除完了');
+}
+
 // メイン
 async function main() {
   console.log('🤖 Ecstasy ニュースBot 開始');
   const token = await getFirebaseToken();
-  const existingArticles = await getExistingArticles(token);
-  console.log(`📚 既存記事: ${existingArticles.length}件`);
+
+  // 全削除してリフレッシュ
+  await clearAllThreads(token);
+
+  const existingArticles = [];
+  console.log('📚 既存記事: 0件（リセット済み）');
 
   let allCandidates = [];
   for (const feed of CONFIG.RSS_FEEDS) {
