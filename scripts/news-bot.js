@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 import { parseStringPromise } from 'xml2js';
 
 const CONFIG = {
-  MAX_ARTICLES: 15,
+  MAX_ARTICLES: 10,
   MIN_SOURCES: 0,
   MODEL: 'gemini-3.6-flash',
   MAX_CANDIDATES: 1000,
@@ -90,49 +90,27 @@ async function getExistingArticles(token) {
 
 // Geminiで記事を1件生成
 async function generateOneArticle(candidates, usedUrls, usedTitles) {
-  // 未使用の候補をランダムに50件選ぶ
   const unused = candidates.filter(c => !usedUrls.has(c.url));
-  const sample = unused.sort(() => Math.random() - 0.5).slice(0, 50);
-  if (!sample.length) return null;
+  if (!unused.length) return null;
+  const sample = unused.sort(() => Math.random() - 0.5).slice(0, 30);
 
-  const candidateText = sample.map((a, i) => `
----候補 ${i + 1}---
-媒体: ${a.source}
-タイトル: ${a.title}
-URL: ${a.url}
-概要: ${a.description.slice(0, 200)}
-`).join('\n');
+  const candidateText = sample.map((a, i) =>
+    `[${i+1}] ${a.source}: ${a.title} | ${a.description.slice(0,100)}`
+  ).join('\n');
 
-  const prompt = `
-あなたは「Ecstasy」という日本語SNSのニュース編集AIです。
+  const prompt = `以下のニュース候補から1つ選んで日本語記事を生成してください。
 
-以下の候補から日本の若者が「何それ！？」と思う最も興味深い出来事を1つ選び、記事を生成してください。
+過去に使ったタイトル（重複禁止）:
+${[...usedTitles].slice(-30).join('\n')}
 
-【禁止】
-- 架空の情報を追加しない
-- 過去に使ったタイトルと似たものを選ばない
-- URLは候補にあるものだけ使う
-
-【過去に使ったタイトル（重複禁止）】
-${[...usedTitles].slice(-50).join('\n')}
-
-【候補】
+候補:
 ${candidateText}
 
-【出力形式】JSONのみ。説明文不要。
+以下のJSON形式のみで回答（説明文・コードブロック不要）:
+{"title":"タイトル","summary":"200〜400文字の本文","category":"海外事件","country":"国名","lat":35.7,"lng":139.7,"sourceIndex":1}
 
-{
-  "title": "タイトル",
-  "summary": "300〜500文字の記事本文",
-  "category": "カテゴリ",
-  "country": "国名（日本語）",
-  "lat": 緯度,
-  "lng": 経度,
-  "sources": [{ "name": "媒体名", "url": "候補のURL" }]
-}
-
-categoryは「海外事件」「海外ニュース」「政治・社会」「芸能」「YouTuber・インフルエンサー」「スキャンダル」「雑学」「その他」のいずれか。
-`;
+categoryは「海外事件」「海外ニュース」「政治・社会」「芸能」「スキャンダル」「雑学」「その他」のいずれか。
+sourceIndexは選んだ候補の番号(1〜${sample.length})。`;
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.MODEL}:generateContent?key=${GEMINI_API_KEY}`,
@@ -141,18 +119,22 @@ categoryは「海外事件」「海外ニュース」「政治・社会」「芸
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 1500, responseMimeType: 'application/json' }
+        generationConfig: { temperature: 0.8, maxOutputTokens: 800 }
       })
     }
   );
 
   const data = await res.json();
-  if (!res.ok) throw new Error('Gemini API失敗: ' + JSON.stringify(data));
+  if (!res.ok) {
+    const errMsg = 'Gemini API失敗: ' + JSON.stringify(data);
+    if (res.status === 429) throw new Error('429:' + errMsg);
+    throw new Error(errMsg);
+  }
 
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) return null;
 
-  let cleaned = text.trim().replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```$/i,'').trim();
+  let cleaned = text.trim();
   const first = cleaned.indexOf('{');
   const last = cleaned.lastIndexOf('}');
   if (first === -1 || last === -1) return null;
@@ -160,9 +142,14 @@ categoryは「海外事件」「海外ニュース」「政治・社会」「芸
 
   try {
     const a = JSON.parse(cleaned);
-    if (!a.title || !a.summary || !Array.isArray(a.sources) || a.lat == null || a.lng == null) return null;
+    if (!a.title || !a.summary || a.lat == null || a.lng == null) return null;
+    // sourceIndexから出典を設定
+    const idx = (a.sourceIndex || 1) - 1;
+    const chosen = sample[Math.min(idx, sample.length-1)];
+    a.sources = [{ name: chosen.source, url: chosen.url }];
     return a;
   } catch(e) {
+    console.error('JSON解析失敗:', cleaned.slice(0,200));
     return null;
   }
 }
@@ -292,28 +279,37 @@ async function main() {
   const usedUrls = new Set();
   const usedTitles = new Set();
   let posted = 0;
-  let failCount = 0;
+  let totalFail = 0;
 
-  while (posted < CONFIG.MAX_ARTICLES && failCount < 5) {
+  while (posted < CONFIG.MAX_ARTICLES && totalFail < 5) {
     try {
       console.log(`🤖 記事生成中... (${posted + 1}/${CONFIG.MAX_ARTICLES})`);
       const article = await generateOneArticle(allCandidates, usedUrls, usedTitles);
-      if (!article) { failCount++; continue; }
+      if (!article) {
+        console.log('⚠️ 記事生成失敗 リトライ...');
+        totalFail++;
+        await new Promise(r => setTimeout(r, 2000));
+        continue;
+      }
 
-      const validSources = validateSources(article, allCandidates);
-      article.sources = validSources.length > 0 ? validSources : (article.sources||[]);
-
-      // 使用済みURLとして記録
-      validSources.forEach(s => usedUrls.add(s.url));
+      // 使用済みURLを記録
+      if (article.sources && article.sources[0]) usedUrls.add(article.sources[0].url);
       usedTitles.add(article.title);
 
       await postToFirebase(token, article);
       posted++;
-      failCount = 0;
+      totalFail = 0;
       await new Promise(r => setTimeout(r, 2000));
     } catch (e) {
-      console.error(`❌ 生成/投稿失敗: ${e.message}`);
-      failCount++;
+      const msg = e.message || '';
+      // 429（日次枠超過）は即終了
+      if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('Quota exceeded')) {
+        console.error(`❌ Gemini無料枠を使い切りました。本日はここまで（${posted}件投稿済み）`);
+        break;
+      }
+      console.error(`❌ 生成/投稿失敗: ${msg}`);
+      totalFail++;
+      await new Promise(r => setTimeout(r, 3000));
     }
   }
 
