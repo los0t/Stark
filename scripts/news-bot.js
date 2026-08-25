@@ -6,7 +6,7 @@ import { parseStringPromise } from 'xml2js';
 //  設定
 // ══════════════════════════════════════════════
 const CONFIG = {
-  MODEL: 'gemini-2.5-flash',
+  MODEL: 'gemini-3.6-flash',
   MAX_NEWS_ARTICLES: 24,   // Firebase上に保持する最大記事数
   CANDIDATE_COUNT: 50,     // Geminiに渡す候補数
   RSS_FEEDS: [
