@@ -227,19 +227,48 @@ sourceIndexは選んだ候補の番号(1〜${sample.length})。`;
     return { article: null, errorType: 'EMPTY', wait: null };
   }
 
-  // JSON抽出
+  // JSON抽出（テキスト内からJSONを探す）
+  let article = null;
   const first = text.indexOf('{');
   const last  = text.lastIndexOf('}');
-  if (first === -1 || last === -1) {
-    console.error('⚠️ JSONが見つからない:', text.slice(0, 100));
-    return { article: null, errorType: 'PARSE_ERROR', wait: null };
+
+  if (first !== -1 && last !== -1) {
+    try {
+      article = JSON.parse(text.slice(first, last + 1));
+    } catch (e) {
+      // JSON壊れている場合は正規表現で各フィールドを抽出
+      console.error('⚠️ JSON解析失敗、フィールド抽出を試みます');
+      try {
+        const extract = (key) => {
+          const m = text.match(new RegExp(`"${key}"\s*:\s*"([^"]*)"`) );
+          return m ? m[1] : null;
+        };
+        const extractNum = (key) => {
+          const m = text.match(new RegExp(`"${key}"\s*:\s*(-?[\d.]+)`));
+          return m ? parseFloat(m[1]) : null;
+        };
+        const extractInt = (key) => {
+          const m = text.match(new RegExp(`"${key}"\s*:\s*(\d+)`));
+          return m ? parseInt(m[1]) : null;
+        };
+        article = {
+          title:       extract('title'),
+          summary:     extract('summary'),
+          category:    extract('category'),
+          country:     extract('country'),
+          lat:         extractNum('lat'),
+          lng:         extractNum('lng'),
+          sourceIndex: extractInt('sourceIndex'),
+        };
+        if (!article.title || !article.summary) article = null;
+      } catch (e2) {
+        article = null;
+      }
+    }
   }
 
-  let article;
-  try {
-    article = JSON.parse(text.slice(first, last + 1));
-  } catch (e) {
-    console.error('⚠️ JSON解析失敗');
+  if (!article) {
+    console.error('⚠️ JSONが見つからない:', text.slice(0, 150));
     return { article: null, errorType: 'PARSE_ERROR', wait: null };
   }
 
@@ -382,6 +411,13 @@ async function main() {
       console.error('🛑 リトライも失敗 → 終了');
       process.exit(1);
     }
+  }
+
+  // PARSE_ERRORの場合は1回だけリトライ
+  if (!genResult.article && genResult.errorType === 'PARSE_ERROR') {
+    console.log('⚠️ JSON解析失敗 → 1回リトライ');
+    await new Promise(r => setTimeout(r, 2000));
+    genResult = await generateArticle(allCandidates, existingTitles);
   }
 
   if (!genResult.article) {
