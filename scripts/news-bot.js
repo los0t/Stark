@@ -8,7 +8,7 @@ import { parseStringPromise } from 'xml2js';
 const CONFIG = {
   MODEL: 'gemini-3.6-flash',
   MAX_NEWS_ARTICLES: 24,   // Firebase上に保持する最大記事数
-  CANDIDATE_COUNT: 50,     // Geminiに渡す候補数
+  CANDIDATE_COUNT: 30,     // Geminiに渡す候補数
   RSS_FEEDS: [
     { url: 'https://feeds.bbci.co.uk/news/world/rss.xml',                    source: 'BBC News' },
     { url: 'https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml',   source: 'BBC Entertainment' },
@@ -185,22 +185,22 @@ async function generateArticle(candidates, existingTitles) {
   const sample = candidates.sort(() => Math.random() - 0.5).slice(0, CONFIG.CANDIDATE_COUNT);
 
   const candidateText = sample.map((a, i) =>
-    `[${i + 1}] ${a.source}: ${a.title} | ${a.description}`
+    `[${i + 1}] ${a.title} (${a.source})`
   ).join('\n');
 
   const prompt = `以下のニュース候補から1つ選んで日本語記事を生成してください。
 
-過去に使ったタイトル（重複禁止）:
-${existingTitles.slice(-20).join('\n')}
+過去タイトル（重複禁止）:
+${existingTitles.slice(-10).join('\n')}
 
 候補:
 ${candidateText}
 
-以下のJSON形式のみで回答（前置き・コードブロック不要）:
-{"title":"タイトル","summary":"200〜400文字の本文","category":"カテゴリ","country":"国名（日本語）","lat":35.7,"lng":139.7,"sourceIndex":1}
+【重要】必ず以下のJSON形式のみで回答。前置き・説明・コードブロック不要。JSONだけ出力。
+{"title":"タイトル（50文字以内）","summary":"150〜250文字の本文","category":"カテゴリ","country":"国名","lat":35.7,"lng":139.7,"sourceIndex":1}
 
-categoryは「海外事件」「海外ニュース」「政治・社会」「芸能」「スキャンダル」「雑学」「その他」のいずれか。
-sourceIndexは選んだ候補の番号(1〜${sample.length})。`;
+category:「海外事件」「海外ニュース」「政治・社会」「芸能」「スキャンダル」「雑学」「その他」のいずれか
+sourceIndex:選んだ候補の番号(1〜${sample.length})`;
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.MODEL}:generateContent?key=${GEMINI_API_KEY}`,
@@ -209,7 +209,7 @@ sourceIndexは選んだ候補の番号(1〜${sample.length})。`;
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.8, maxOutputTokens: 800 }
+        generationConfig: { temperature: 0.8, maxOutputTokens: 2000 }
       })
     }
   );
