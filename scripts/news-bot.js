@@ -169,7 +169,8 @@ async function fetchRSS(feed) {
     return items.map(item => {
       const url = typeof item.link === 'string' ? item.link : item.link?._ || '';
       const description = typeof item.description === 'string' ? item.description : item.description?._ || '';
-      return { title: item.title || '', url, description: description.slice(0, 150), source: feed.source };
+      const pubDate = item.pubDate || item['dc:date'] || '';
+      return { title: item.title || '', url, description: description.slice(0, 150), source: feed.source, pubDate };
     }).filter(a => a.title && a.url);
   } catch (e) {
     console.error(`❌ ${feed.source} 取得失敗: ${e.message}`);
@@ -185,7 +186,7 @@ async function generateArticle(candidates, existingTitles) {
   const sample = candidates.sort(() => Math.random() - 0.5).slice(0, CONFIG.CANDIDATE_COUNT);
 
   const candidateText = sample.map((a, i) =>
-    `[${i + 1}] ${a.title} (${a.source})`
+    `[${i + 1}] ${a.title} (${a.source}${a.pubDate?' · '+a.pubDate.slice(0,16):''})`
   ).join('\n');
 
   const prompt = `以下のニュース候補から1つ選んで日本語記事を生成してください。
@@ -281,6 +282,7 @@ sourceIndex:選んだ候補の番号(1〜${sample.length})`;
   const idx = Math.min(Math.max((article.sourceIndex || 1) - 1, 0), sample.length - 1);
   const chosen = sample[idx];
   article.sources = [{ name: chosen.source, url: chosen.url }];
+  article.pubDate = chosen.pubDate || '';
 
   return { article, errorType: null, wait: null };
 }
@@ -310,7 +312,8 @@ async function postToFirebase(token, article) {
       newsCategory: article.category || 'ニュース',
       country: article.country || '',
       lat: article.lat,
-      lng: article.lng
+      lng: article.lng,
+      newsPubDate: article.pubDate || ''
     })
   });
   if (!threadRes.ok) throw new Error(`スレッド作成失敗: HTTP ${threadRes.status}`);
