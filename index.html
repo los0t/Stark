@@ -740,38 +740,108 @@ function initGlobe(){
   // 緯度線（水平グリッド）
   const gridMat=new THREE.LineBasicMaterial({color:0x00f5ff,transparent:true,opacity:0.06});
   [-60,-30,0,30,60].forEach(lat=>{
-    const pts=[];
-    for(let lng=-180;lng<=180;lng+=2){
-      pts.push(latLngTo3D(lat,lng,1.005));
-    }
+    const pts=[];for(let lng=-180;lng<=180;lng+=2)pts.push(latLngTo3D(lat,lng,1.005));
     globeScene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),gridMat));
   });
   // 経度線（垂直グリッド）
   const gridMatV=new THREE.LineBasicMaterial({color:0x9b59ff,transparent:true,opacity:0.04});
   for(let lng=-180;lng<180;lng+=30){
-    const pts=[];
-    for(let lat=-90;lat<=90;lat+=2){
-      pts.push(latLngTo3D(lat,lng,1.005));
-    }
+    const pts=[];for(let lat=-90;lat<=90;lat+=2)pts.push(latLngTo3D(lat,lng,1.005));
     globeScene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),gridMatV));
   }
 
-  // 大陸の輪郭（GeoJSONをfetchして描画）
-  fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson')
-    .then(r=>r.json())
-    .then(geo=>{
-      const lineMat=new THREE.LineBasicMaterial({color:0x9b59ff,transparent:true,opacity:0.5});
-      geo.features.forEach(f=>{
-        const coords=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates;
-        coords.forEach(poly=>{
-          poly.forEach(ring=>{
-            const pts=ring.map(([lng,lat])=>latLngTo3D(lat,lng,1.002));
-            const g=new THREE.BufferGeometry().setFromPoints(pts);
-            globeScene.add(new THREE.Line(g,lineMat));
+  // GeoJSON描画ヘルパー
+  function drawGeoJSON(geo,color,opacity,radius=1.002){
+    const mat=new THREE.LineBasicMaterial({color,transparent:true,opacity});
+    geo.features.forEach(f=>{
+      if(!f.geometry)return;
+      const type=f.geometry.type;
+      const allCoords=type==='Polygon'?[f.geometry.coordinates]:
+                      type==='MultiPolygon'?f.geometry.coordinates:
+                      type==='LineString'?[[f.geometry.coordinates]]:
+                      type==='MultiLineString'?[f.geometry.coordinates]:[];
+      allCoords.forEach(poly=>{
+        (Array.isArray(poly[0][0])?poly:[[poly[0]]]).forEach(ring=>{
+          const arr=Array.isArray(ring[0])?ring:[ring];
+          arr.forEach(coords=>{
+            if(!Array.isArray(coords)||coords.length<2)return;
+            try{
+              const pts=coords.map(c=>latLngTo3D(c[1],c[0],radius));
+              globeScene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),mat));
+            }catch(e){}
           });
         });
       });
-    }).catch(()=>{});
+    });
+  }
+
+  // 国名ラベル（CSS2D風にHTML要素で表示）
+  const countryLabels=[];
+  function addCountryLabel(name,lat,lng){
+    const div=document.createElement('div');
+    div.className='country-label';
+    div.textContent=name;
+    div.style.cssText='position:absolute;color:rgba(155,89,255,0.7);font-size:9px;font-family:JetBrains Mono,monospace;pointer-events:none;white-space:nowrap;display:none;z-index:8;transform:translate(-50%,-50%)';
+    document.getElementById('globe-wrap').appendChild(div);
+    countryLabels.push({div,lat,lng});
+  }
+
+  // 主要国の国名ラベル
+  const majorCountries=[
+    ['日本',36,138],['アメリカ',38,-97],['中国',35,105],['ロシア',60,90],
+    ['ブラジル',-10,-55],['インド',20,78],['オーストラリア',-25,134],
+    ['イギリス',54,-2],['フランス',46,2],['ドイツ',51,10],
+    ['カナダ',56,-106],['メキシコ',23,-102],['韓国',37,128],
+    ['サウジアラビア',24,45],['南アフリカ',-29,25],['エジプト',26,30],
+    ['トルコ',39,35],['アルゼンチン',-34,-64],['インドネシア',-2,118],
+    ['ナイジェリア',9,8],['ウクライナ',49,32],['イタリア',42,12],
+    ['スペイン',40,-4],['タイ',15,101],['ポーランド',52,20],
+  ];
+  majorCountries.forEach(([name,lat,lng])=>addCountryLabel(name,lat,lng));
+
+  // ラベル更新（animateから呼ぶ）
+  window._updateCountryLabels=function(){
+    if(!globeSphere||!globeCamera||!globeRenderer)return;
+    const wrap=document.getElementById('globe-wrap');
+    const w=wrap.clientWidth,h=wrap.clientHeight;
+    const showLabels=globeZoom<2.5;
+    countryLabels.forEach(({div,lat,lng})=>{
+      if(!showLabels){div.style.display='none';return;}
+      const pos=latLngTo3D(lat,lng,1.02);
+      const worldPos=pos.clone().applyEuler(globeSphere.rotation);
+      const camPos=new THREE.Vector3(0,0,globeZoom);
+      const toCam=camPos.clone().sub(worldPos).normalize();
+      const isFront=worldPos.clone().normalize().dot(toCam)>0;
+      if(!isFront){div.style.display='none';return;}
+      const projected=worldPos.clone().project(globeCamera);
+      const sx=(projected.x+1)/2*w;
+      const sy=(-(projected.y)+1)/2*h;
+      if(sx<0||sx>w||sy<0||sy>h){div.style.display='none';return;}
+      div.style.display='block';
+      div.style.left=sx+'px';
+      div.style.top=sy+'px';
+    });
+  };
+
+  // GeoJSON取得（大陸輪郭 + 国境線）
+  const GEOJSON_BASE='https://cdn.jsdelivr.net/npm/world-atlas@2/';
+  Promise.all([
+    fetch(GEOJSON_BASE+'land-110m.json').then(r=>r.json()),
+    fetch(GEOJSON_BASE+'countries-110m.json').then(r=>r.json()),
+  ]).then(([landTopo,countriesTopo])=>{
+    // TopoJSON→GeoJSON変換（簡易）
+    // land-110m.jsonはTopoJSONなので直接fetchで別のソースを使う
+  }).catch(()=>{});
+
+  // CDN別ソースで試行
+  fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
+    .then(r=>r.json())
+    .then(geo=>{
+      // 国境線（薄いシアン）
+      drawGeoJSON(geo,0x00f5ff,0.12,1.003);
+      // 大陸塗りは線で代用（パープル輪郭）
+      drawGeoJSON(geo,0x9b59ff,0.35,1.002);
+    }).catch(e=>console.log('GeoJSON読み込み失敗（CORSまたはネットワーク）',e.message));
 
   document.getElementById('globe-loading').style.display='none';
 
@@ -837,6 +907,7 @@ function animate(){
   }
   globeRenderer.render(globeScene,globeCamera);
   updateBubbles();
+  if(window._updateCountryLabels)window._updateCountryLabels();
 }
 
 // タッチ・マウス操作
