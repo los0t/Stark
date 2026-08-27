@@ -406,7 +406,8 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
     <div class="news-panel-cat" id="panel-cat"></div>
     <div class="news-panel-title" id="panel-title"></div>
     <div class="news-panel-meta" id="panel-meta"></div>
-    <div style="font-size:12px;color:#888;margin-bottom:8px" id="panel-views"></div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:4px;font-family:'JetBrains Mono',monospace" id="panel-pubdate"></div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:8px;font-family:'JetBrains Mono',monospace" id="panel-views"></div>
     <div class="news-panel-body" id="panel-body"></div>
     <div style="display:flex;gap:10px;margin-bottom:10px">
       <button class="like-btn" id="panel-like-btn" style="flex:1;justify-content:center;padding:10px">🤍 <span id="panel-like-count"></span></button>
@@ -662,6 +663,9 @@ let isDragging=false,prevTouch={x:0,y:0};
 let rotVelX=0,rotVelY=0;
 let globeThreads=[];
 let bubbleEls=[];
+let globeZoom=2.8; // カメラZ距離（小さいほどズームイン）
+const ZOOM_MIN=1.5,ZOOM_MAX=5.0;
+let pinchStartDist=0,pinchStartZoom=2.8;
 
 function latLngTo3D(lat,lng,r){
   const phi=(90-lat)*Math.PI/180;
@@ -733,6 +737,42 @@ function initGlobe(){
   ring2.rotation.y=Math.PI/2;
   globeScene.add(ring2);
 
+  // 緯度線（水平グリッド）
+  const gridMat=new THREE.LineBasicMaterial({color:0x00f5ff,transparent:true,opacity:0.06});
+  [-60,-30,0,30,60].forEach(lat=>{
+    const pts=[];
+    for(let lng=-180;lng<=180;lng+=2){
+      pts.push(latLngTo3D(lat,lng,1.005));
+    }
+    globeScene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),gridMat));
+  });
+  // 経度線（垂直グリッド）
+  const gridMatV=new THREE.LineBasicMaterial({color:0x9b59ff,transparent:true,opacity:0.04});
+  for(let lng=-180;lng<180;lng+=30){
+    const pts=[];
+    for(let lat=-90;lat<=90;lat+=2){
+      pts.push(latLngTo3D(lat,lng,1.005));
+    }
+    globeScene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),gridMatV));
+  }
+
+  // 大陸の輪郭（GeoJSONをfetchして描画）
+  fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson')
+    .then(r=>r.json())
+    .then(geo=>{
+      const lineMat=new THREE.LineBasicMaterial({color:0x9b59ff,transparent:true,opacity:0.5});
+      geo.features.forEach(f=>{
+        const coords=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates;
+        coords.forEach(poly=>{
+          poly.forEach(ring=>{
+            const pts=ring.map(([lng,lat])=>latLngTo3D(lat,lng,1.002));
+            const g=new THREE.BufferGeometry().setFromPoints(pts);
+            globeScene.add(new THREE.Line(g,lineMat));
+          });
+        });
+      });
+    }).catch(()=>{});
+
   document.getElementById('globe-loading').style.display='none';
 
   // 大気
@@ -757,6 +797,12 @@ function initGlobe(){
   canvas.addEventListener('mousedown',onMouseDown);
   canvas.addEventListener('mousemove',onMouseMove);
   canvas.addEventListener('mouseup',onMouseUp);
+  // ホイールズーム
+  canvas.addEventListener('wheel',e=>{
+    e.preventDefault();
+    globeZoom=Math.max(ZOOM_MIN,Math.min(ZOOM_MAX,globeZoom+e.deltaY*0.005));
+    globeCamera.position.z=globeZoom;
+  },{passive:false});
 
   // リサイズ
   window.addEventListener('resize',()=>{
@@ -794,9 +840,27 @@ function animate(){
 }
 
 // タッチ・マウス操作
-function onTouchStart(e){isDragging=true;prevTouch={x:e.touches[0].clientX,y:e.touches[0].clientY};}
+function onTouchStart(e){
+  if(e.touches.length===2){
+    // ピンチ開始
+    pinchStartDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    pinchStartZoom=globeZoom;
+    isDragging=false;
+  } else {
+    isDragging=true;
+    prevTouch={x:e.touches[0].clientX,y:e.touches[0].clientY};
+  }
+}
 function onTouchMove(e){
   e.preventDefault();
+  if(e.touches.length===2){
+    // ピンチズーム
+    const dist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    const scale=pinchStartDist/dist;
+    globeZoom=Math.max(ZOOM_MIN,Math.min(ZOOM_MAX,pinchStartZoom*scale));
+    globeCamera.position.z=globeZoom;
+    return;
+  }
   if(!isDragging)return;
   const dx=e.touches[0].clientX-prevTouch.x;
   const dy=e.touches[0].clientY-prevTouch.y;
@@ -863,8 +927,9 @@ function renderBubbles(){
     const title=t.title.replace(/^【|】$/g,'');
     const shortTitle=title.length>30?title.slice(0,30)+'…':title;
     const views=t.views||0;
-    const viewsStr=views>0?` · 👀${views}`:'';
-    bubble.innerHTML=`${esc(shortTitle)}<div class="bubble-date">${fmt(t.createdAt)} · ${esc(t.country||'')}${viewsStr}</div>`;
+    const viewsStr=views>0?` 👀${views}`:'';
+    const pubStr=t.newsPubDate?t.newsPubDate.slice(0,10):'';
+    bubble.innerHTML=`${esc(shortTitle)}<div class="bubble-date">${pubStr?pubStr+' · ':''}${esc(t.country||'')}${viewsStr}</div>`;
     bubble.addEventListener('click',()=>openNewsPanel(t));
     bubble.addEventListener('touchend',e=>{e.preventDefault();openNewsPanel(t);});
     wrap.appendChild(bubble);
@@ -897,16 +962,17 @@ function updateBubbles(){
     const sx=(projected.x+1)/2*w;
     const sy=(-(projected.y)+1)/2*h;
 
+    // ズームが近いほど吹き出しを大きく
+    const zoomScale=Math.max(0.7,Math.min(1.3,(ZOOM_MAX-globeZoom)/(ZOOM_MAX-ZOOM_MIN)*0.6+0.7));
     if(!isFront||projected.z>1||sx<0||sx>w||sy<0||sy>h){
       dot.style.display='none';bubble.style.display='none';
     } else {
       dot.style.display='block';bubble.style.display='block';
       dot.style.left=sx+'px';dot.style.top=sy+'px';
       bubble.style.left=sx+'px';bubble.style.top=(sy-10)+'px';
-      // 閲覧数スケール適用
-      const scale=getViewScale(t.views||0);
+      const viewScale=getViewScale(t.views||0);
       bubble.style.transformOrigin='bottom center';
-      bubble.style.transform=`translate(-50%,-100%) scale(${scale})`;
+      bubble.style.transform=`translate(-50%,-100%) scale(${viewScale*zoomScale})`;
     }
     bIdx++;
   });
@@ -918,9 +984,18 @@ function openNewsPanel(t){
   const title=t.title.replace(/^【|】$/g,'');
   document.getElementById('panel-cat').textContent=t.newsCategory||'ニュース';
   document.getElementById('panel-title').textContent=title;
-  document.getElementById('panel-meta').textContent=`${fmt(t.createdAt)} · ${t.country||''}`;
+  document.getElementById('panel-meta').textContent=`🤖 生成: ${fmt(t.createdAt)} · ${t.country||''}`;
   document.getElementById('panel-body').textContent='読み込み中...';
   document.getElementById('panel-like-count').textContent='';
+
+  // 発生日時表示
+  const pubDateEl=document.getElementById('panel-pubdate');
+  if(t.newsPubDate){
+    pubDateEl.textContent=`📰 発生: ${t.newsPubDate}`;
+    pubDateEl.style.display='block';
+  } else {
+    pubDateEl.style.display='none';
+  }
 
   // 閲覧数をインクリメント
   const viewRef=ref(db,`threads/${t.tid}/views`);
@@ -928,7 +1003,6 @@ function openNewsPanel(t){
     const newViews=(snap.val()||0)+1;
     set(viewRef,newViews);
     document.getElementById('panel-views').textContent=`👀 ${newViews}`;
-    // 閲覧数に応じて吹き出しサイズ更新
     t.views=newViews;
     updateBubbleSizes();
   });
@@ -941,8 +1015,35 @@ function openNewsPanel(t){
       const [firstPid, firstPost] = entries[0];
       const text=firstPost.text||'';
       const lines=text.split('\n');
-      const body=lines.filter(l=>!l.startsWith('【')||l.includes('出典')).join('\n').trim();
-      document.getElementById('panel-body').textContent=body;
+      // タイトル行を除いた本文（出典URLはリンク化）
+      const bodyEl=document.getElementById('panel-body');
+      bodyEl.innerHTML='';
+      let inSources=false;
+      lines.forEach(line=>{
+        if(line.startsWith('【'))return;
+        if(line.startsWith('📰 出典')){inSources=true;}
+        const p=document.createElement('p');
+        p.style.marginBottom='4px';
+        // URL検出してリンク化
+        const urlRegex=/(https?:\/\/[^\s]+)/g;
+        if(urlRegex.test(line)){
+          line.split(urlRegex).forEach((part,i)=>{
+            if(/^https?:\/\//.test(part)){
+              const a=document.createElement('a');
+              a.href=part;a.target='_blank';a.rel='noopener noreferrer';
+              a.textContent=part.length>50?part.slice(0,50)+'…':part;
+              a.style.cssText='color:var(--cyan);text-decoration:underline;font-size:11px;word-break:break-all;font-family:JetBrains Mono,monospace';
+              p.appendChild(a);
+            } else if(part){
+              p.appendChild(document.createTextNode(part));
+            }
+          });
+        } else {
+          p.textContent=line;
+          if(inSources)p.style.color='var(--muted)';
+        }
+        if(line||inSources)bodyEl.appendChild(p);
+      });
 
       // いいね表示
       const likes=firstPost.likes||{};
@@ -956,7 +1057,7 @@ function openNewsPanel(t){
         const postRef=ref(db,`posts/${t.tid}/${firstPid}/likes`);
         if(iLiked)await remove(ref(db,`posts/${t.tid}/${firstPid}/likes/${myUid}`));
         else await update(postRef,{[myUid]:true});
-        openNewsPanel(t); // 再読み込みして反映
+        openNewsPanel(t);
       };
     }
   });
