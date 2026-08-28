@@ -575,11 +575,20 @@ onAuthStateChanged(auth,async user=>{
 // ════ スタート ════
 document.getElementById('btn-go-login').onclick=()=>go('pg-login');
 document.getElementById('btn-go-register').onclick=()=>go('pg-register');
-document.getElementById('btn-guest').onclick=()=>{
-  isGuest=true;myUid='guest_'+Math.random().toString(36).slice(2);
+document.getElementById('btn-guest').onclick=async()=>{
+  isGuest=true;
+  // 匿名認証でFirebaseにサインイン（Realtime DBのread権限のため）
+  try{
+    const {signInAnonymously}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+    const result=await signInAnonymously(auth);
+    myUid=result.user.uid;
+  }catch(e){
+    // 匿名認証失敗時はダミーUIDで続行（読み取り専用）
+    myUid='guest_'+Math.random().toString(36).slice(2);
+  }
   myAccountId=null;myNick=null;
-  document.getElementById('badge-list').textContent='👁 ゲスト';
-  document.getElementById('badge-thread').textContent='👁 ゲスト';
+  document.getElementById('badge-list').textContent='👁 GUEST';
+  document.getElementById('badge-thread').textContent='👁 GUEST';
   go('pg-list');
   initGlobe();
 };
@@ -684,6 +693,19 @@ function initGlobe(){
   // Scene
   globeScene=new THREE.Scene();
   globeScene.background=new THREE.Color(0x00000f);
+
+  // ── 夜景地球儀（一番下のレイヤー）
+  const nightGeo=new THREE.SphereGeometry(0.999,64,64);
+  const nightLoader=new THREE.TextureLoader();
+  const nightTex=nightLoader.load(
+    'https://unpkg.com/three-globe/example/img/earth-night.jpg',
+    ()=>{console.log('🌃 夜景テクスチャ読み込み完了');}
+  );
+  const nightMat=new THREE.MeshBasicMaterial({map:nightTex});
+  const nightMesh=new THREE.Mesh(nightGeo,nightMat);
+  globeScene.add(nightMesh);
+  // globeSphereと同期して回転
+  window._nightMesh=nightMesh;
   globeCamera=new THREE.PerspectiveCamera(45,wrap.clientWidth/wrap.clientHeight,0.1,1000);
   globeCamera.position.z=2.8;
 
@@ -976,7 +998,11 @@ function initGlobe(){
 function animate(){
   globeAnimId=requestAnimationFrame(animate);
   if(!isDragging){
-    globeSphere.rotation.y+=0.001; // ゆっくり自動回転のみ
+    globeSphere.rotation.y+=0.001;
+  }
+  // 夜景メッシュをglobeSphereと同期
+  if(window._nightMesh){
+    window._nightMesh.rotation.copy(globeSphere.rotation);
   }
   globeRenderer.render(globeScene,globeCamera);
   updateBubbles();
