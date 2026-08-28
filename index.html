@@ -810,7 +810,7 @@ function initGlobe(){
   const mapGeo=new THREE.SphereGeometry(1.001,64,64);
   const mapMat=new THREE.MeshBasicMaterial({map:mapTex,transparent:true,opacity:1,depthWrite:false});
   const mapMesh=new THREE.Mesh(mapGeo,mapMat);
-  globeScene.add(mapMesh);
+  globeSphere.add(mapMesh); // globeSphereの子にして一緒に回転させる
 
   // TopoJSON取得して描画
   fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
@@ -1096,10 +1096,8 @@ function updateBubbles(){
     const worldPos=pos.clone().applyEuler(globeSphere.rotation);
     const projected=worldPos.clone().project(globeCamera);
 
-    // カメラ方向との内積で表面が見えているか判定
-    const camPos=new THREE.Vector3(0,0,2.8); // カメラ位置
-    const toCam=camPos.clone().sub(worldPos).normalize();
-    const isFront=worldPos.clone().normalize().dot(toCam)>0;
+    // 裏側判定：worldPosのZ成分が正なら表側
+    const isFront=worldPos.z>0;
 
     const sx=(projected.x+1)/2*w;
     const sy=(-(projected.y)+1)/2*h;
