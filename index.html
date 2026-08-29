@@ -686,11 +686,42 @@ async function doRegister(){
   const email=document.getElementById('reg-email').value.trim();
   const pw=document.getElementById('reg-pw').value;
   const pw2=document.getElementById('reg-pw2').value;
-  const errEl=document.getElementById('reg-err');errEl.textContent='';
-  if(!email||!pw||!pw2){errEl.textContent='すべての項目を入力してください';return;}
-  if(pw!==pw2){errEl.textContent='パスワードが一致しません';return;}
-  if(pw.length<6){errEl.textContent='パスワードは6文字以上にしてください';return;}
-  try{isNewUser=true;await createUserWithEmailAndPassword(auth,email,pw);}catch(e){errEl.textContent=fbErrMsg(e.code);}
+  const errEl=document.getElementById('reg-err');
+
+  errEl.textContent='';
+
+  if(!email||!pw||!pw2){
+    errEl.textContent='すべての項目を入力してください';
+    return;
+  }
+
+  if(pw!==pw2){
+    errEl.textContent='パスワードが一致しません';
+    return;
+  }
+
+  if(pw.length<6){
+    errEl.textContent='パスワードは6文字以上にしてください';
+    return;
+  }
+
+  try{
+
+    isNewUser=true;
+
+    const result=await createUserWithEmailAndPassword(auth,email,pw);
+
+    // 確認メールを送信
+    await sendEmailVerification(result.user);
+
+    errEl.textContent=
+      '確認メールを送信しました。メール内のリンクを開いて確認してください。';
+
+  }catch(e){
+
+    errEl.textContent=fbErrMsg(e.code);
+
+  }
 }
 
 // ════ パスワードリセット ════
