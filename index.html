@@ -709,28 +709,28 @@ async function doRegister(){
 
     const currentUser=auth.currentUser;
 
-    // すでにこの端末で登録したユーザーの場合
+    // すでに登録済みのユーザーなら再登録しない
     if(currentUser && currentUser.email===email){
 
       await reload(currentUser);
 
+      // メール確認済みならプロフィール設定へ
       if(currentUser.emailVerified){
 
-        // メール確認済みならプロフィール設定へ
+        myUid=currentUser.uid;
         go('pg-profile-set');
         return;
 
-      }else{
-
-        // まだメール確認されていない
-        errEl.textContent=
-          'まだメールアドレスが確認されていません。確認メールのリンクを開いてください。';
-
-        return;
       }
+
+      // まだ確認されていない
+      errEl.textContent=
+        'まだメールアドレスが確認されていません。確認メールのリンクを開いてください。';
+
+      return;
     }
 
-    // 新規ユーザーを作成
+    // 新規登録
     isNewUser=true;
 
     const result=
@@ -740,7 +740,7 @@ async function doRegister(){
     await sendEmailVerification(result.user);
 
     errEl.textContent=
-      '確認メールを送信しました。メール内のリンクを開いてください。';
+      '確認メールを送信しました。確認後、「次へ」を押してください。';
 
   }catch(e){
 
