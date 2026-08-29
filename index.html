@@ -1182,6 +1182,91 @@ function updateBubbles(){
   });
 }
 
+// ミニ地球儀
+let miniScene,miniCamera,miniRenderer,miniSphere,miniAnimId;
+let miniNightMesh,miniGlowMesh;
+
+function initMiniGlobe(){
+  const wrap=document.getElementById('mini-globe-wrap');
+  const canvas=document.getElementById('mini-globe-canvas');
+  if(miniRenderer){miniRenderer.dispose();}
+  const w=wrap.clientWidth,h=wrap.clientHeight;
+  miniScene=new THREE.Scene();
+  miniScene.background=new THREE.Color(0x00000f);
+  miniCamera=new THREE.PerspectiveCamera(45,w/h,0.1,100);
+  miniCamera.position.z=2.5;
+  miniRenderer=new THREE.WebGLRenderer({canvas,antialias:true});
+  miniRenderer.setSize(w,h);
+  miniRenderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+
+  // 夜景地球
+  const geo=new THREE.SphereGeometry(1,64,64);
+  const loader=new THREE.TextureLoader();
+  const tex=loader.load('https://unpkg.com/three-globe/example/img/earth-night.jpg');
+  miniSphere=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:tex}));
+  miniScene.add(miniSphere);
+
+  // ワイヤーフレーム（薄く）
+  const wireMat=new THREE.MeshBasicMaterial({color:0x00f5ff,wireframe:true,transparent:true,opacity:0.08});
+  miniScene.add(new THREE.Mesh(new THREE.SphereGeometry(1.002,32,32),wireMat));
+
+  // 環境光
+  miniScene.add(new THREE.AmbientLight(0x00f5ff,0.3));
+  const pl=new THREE.PointLight(0x00f5ff,1.5,10);
+  pl.position.set(3,2,3);miniScene.add(pl);
+}
+
+function showMiniGlobe(lat,lng,countryName){
+  initMiniGlobe();
+  document.getElementById('mini-country-name').textContent=countryName||'';
+
+  // 座標グロー点
+  const glowGeo=new THREE.SphereGeometry(0.04,16,16);
+  const glowMat=new THREE.MeshBasicMaterial({color:0x00f5ff,transparent:true,opacity:0.9});
+  if(miniGlowMesh)miniScene.remove(miniGlowMesh);
+  miniGlowMesh=new THREE.Mesh(glowGeo,glowMat);
+  const glowPos=latLngTo3D(lat,lng,1.01);
+  miniGlowMesh.position.copy(glowPos);
+  miniScene.add(miniGlowMesh);
+
+  // 外側のグロー（大きい半透明球）
+  const outerGeo=new THREE.SphereGeometry(0.08,16,16);
+  const outerMat=new THREE.MeshBasicMaterial({color:0x00f5ff,transparent:true,opacity:0.2});
+  const outerMesh=new THREE.Mesh(outerGeo,outerMat);
+  outerMesh.position.copy(glowPos);
+  miniScene.add(outerMesh);
+
+  // カメラをその座標に向ける
+  // lat,lngから地球を回転させて座標を正面に持ってくる
+  const targetRotY=-(lng * Math.PI/180) - Math.PI/2;
+  const targetRotX=-(lat * Math.PI/180);
+  miniSphere.rotation.y=targetRotY;
+  miniSphere.rotation.x=targetRotX;
+  glowMesh_update();
+
+  // ミニ地球儀アニメーション
+  if(miniAnimId)cancelAnimationFrame(miniAnimId);
+  function miniAnimate(){
+    miniAnimId=requestAnimationFrame(miniAnimate);
+    // グローをパルス
+    const t=Date.now()*0.003;
+    glowMat.opacity=0.6+Math.sin(t)*0.3;
+    outerMat.opacity=0.1+Math.sin(t)*0.1;
+    // グロー位置を地球の回転に追従
+    glowMesh_update();
+    miniRenderer.render(miniScene,miniCamera);
+  }
+
+  function glowMesh_update(){
+    const pos=latLngTo3D(lat,lng,1.01);
+    const worldPos=pos.clone().applyEuler(miniSphere.rotation);
+    miniGlowMesh.position.copy(worldPos);
+    outerMesh.position.copy(worldPos);
+  }
+
+  miniAnimate();
+}
+
 // ニュース詳細パネル
 function openNewsPanel(t){
   currentPanelThread=t;
@@ -1191,6 +1276,9 @@ function openNewsPanel(t){
   document.getElementById('panel-meta').textContent=`🤖 生成: ${fmt(t.createdAt)} · ${t.country||''}`;
   document.getElementById('panel-body').textContent='読み込み中...';
   document.getElementById('panel-like-count').textContent='';
+
+  // ミニ地球儀表示
+  showMiniGlobe(t.lat,t.lng,t.country||'');
 
   // 発生日時表示
   const pubDateEl=document.getElementById('panel-pubdate');
@@ -1276,7 +1364,8 @@ function closeNewsPanel(){
   document.getElementById('news-panel').classList.remove('open');
   document.getElementById('panel-overlay').classList.remove('on');
   currentPanelThread=null;
-  autoRotate=true; // パネルを閉じたら回転再開
+  autoRotate=true;
+  if(miniAnimId){cancelAnimationFrame(miniAnimId);miniAnimId=null;}
 }
 
 // 記事選択パネル
