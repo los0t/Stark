@@ -1020,7 +1020,7 @@ function initGlobe(){
 
 function animate(){
   globeAnimId=requestAnimationFrame(animate);
-  if(!isDragging){
+  if(!isDragging&&autoRotate){
     globeSphere.rotation.y+=0.001;
   }
   // 夜景メッシュをglobeSphereと同期
