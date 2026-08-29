@@ -1290,8 +1290,13 @@ function openNewsPanel(t){
   document.getElementById('panel-body').textContent='読み込み中...';
   document.getElementById('panel-like-count').textContent='';
 
-  // ミニ地球儀表示（エラーがあってもパネルは開く）
-  try{showMiniGlobe(t.lat||0,t.lng||0,t.country||'');}catch(e){console.warn('ミニ地球儀エラー:',e.message);}
+  // パネルを先に開いてからミニ地球儀を初期化（サイズ確定後）
+  document.getElementById('news-panel').classList.add('open');
+  document.getElementById('panel-overlay').classList.add('on');
+  setTimeout(()=>{
+    try{showMiniGlobe(t.lat||0,t.lng||0,t.country||'');}
+    catch(e){console.warn('ミニ地球儀エラー:',e.message);}
+  },100);
 
   // 発生日時表示
   const pubDateEl=document.getElementById('panel-pubdate');
@@ -1367,8 +1372,6 @@ function openNewsPanel(t){
     }
   });
 
-  document.getElementById('news-panel').classList.add('open');
-  document.getElementById('panel-overlay').classList.add('on');
 }
 
 document.getElementById('panel-close').onclick=closeNewsPanel;
