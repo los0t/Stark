@@ -1225,7 +1225,14 @@ function showMiniGlobe(lat,lng,countryName){
   const glowMat=new THREE.MeshBasicMaterial({color:0x00f5ff,transparent:true,opacity:0.9});
   if(miniGlowMesh)miniScene.remove(miniGlowMesh);
   miniGlowMesh=new THREE.Mesh(glowGeo,glowMat);
-  const glowPos=latLngTo3D(lat,lng,1.01);
+  // latLngTo3D と同じ計算をインライン
+  const phi=(90-lat)*Math.PI/180;
+  const theta=(lng+180)*Math.PI/180;
+  const glowPos=new THREE.Vector3(
+    -1.01*Math.sin(phi)*Math.cos(theta),
+    1.01*Math.cos(phi),
+    1.01*Math.sin(phi)*Math.sin(theta)
+  );
   miniGlowMesh.position.copy(glowPos);
   miniScene.add(miniGlowMesh);
 
@@ -1258,8 +1265,14 @@ function showMiniGlobe(lat,lng,countryName){
   }
 
   function glowMesh_update(){
-    const pos=latLngTo3D(lat,lng,1.01);
-    const worldPos=pos.clone().applyEuler(miniSphere.rotation);
+    const phi2=(90-lat)*Math.PI/180;
+    const theta2=(lng+180)*Math.PI/180;
+    const pos2=new THREE.Vector3(
+      -1.01*Math.sin(phi2)*Math.cos(theta2),
+      1.01*Math.cos(phi2),
+      1.01*Math.sin(phi2)*Math.sin(theta2)
+    );
+    const worldPos=pos2.clone().applyEuler(miniSphere.rotation);
     miniGlowMesh.position.copy(worldPos);
     outerMesh.position.copy(worldPos);
   }
@@ -1277,8 +1290,8 @@ function openNewsPanel(t){
   document.getElementById('panel-body').textContent='読み込み中...';
   document.getElementById('panel-like-count').textContent='';
 
-  // ミニ地球儀表示
-  showMiniGlobe(t.lat,t.lng,t.country||'');
+  // ミニ地球儀表示（エラーがあってもパネルは開く）
+  try{showMiniGlobe(t.lat||0,t.lng||0,t.country||'');}catch(e){console.warn('ミニ地球儀エラー:',e.message);}
 
   // 発生日時表示
   const pubDateEl=document.getElementById('panel-pubdate');
