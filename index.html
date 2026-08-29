@@ -189,41 +189,31 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
 .bubble-date{font-size:8px;color:rgba(0,245,255,0.5);font-weight:400;margin-top:2px}
 
 /* ニュース詳細パネル */
-/* 詳細パネル：全画面オーバーレイ */
 .news-panel{
-  position:fixed;inset:0;
-  display:flex;flex-direction:column;
-  background:transparent;
-  z-index:30;
-  visibility:hidden;
-  pointer-events:none;
-}
-.news-panel.open{visibility:visible;pointer-events:auto;}
-
-/* 上半分：ミニ地球儀エリア */
-.news-panel-globe-area{
-  flex:0 0 45%;
-  position:relative;
-  overflow:hidden;
-}
-
-/* 下半分：記事内容 */
-.news-panel-content{
-  flex:1;
-  background:rgba(0,3,15,0.96);
-  border-top:1px solid rgba(0,245,255,0.3);
-  overflow-y:auto;
+  position:absolute;bottom:0;left:0;right:0;
+  background:rgba(0,5,25,0.97);
+  border-top:1px solid var(--cyan);
+  border-radius:0;
+  padding:20px 16px 32px;
+  max-height:60vh;overflow-y:auto;
+  transform:translateY(100%);
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+  z-index:20;
   -webkit-overflow-scrolling:touch;
-  padding:16px 16px 32px;
   backdrop-filter:blur(20px);
+  box-shadow:0 -4px 30px rgba(0,245,255,0.15);
 }
+.news-panel::before{
+  content:'';position:absolute;top:0;left:40px;right:40px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+}
+.news-panel.open{transform:translateY(0)}
 .news-panel-close{
-  position:absolute;top:12px;right:14px;z-index:35;
-  background:rgba(0,3,15,0.8);border:1px solid rgba(0,245,255,0.4);
-  color:var(--cyan);width:32px;height:32px;
-  border-radius:2px;cursor:pointer;font-size:16px;
+  position:absolute;top:12px;right:14px;
+  background:transparent;border:1px solid rgba(0,245,255,0.3);
+  color:var(--cyan);width:28px;height:28px;
+  border-radius:2px;cursor:pointer;font-size:14px;
   display:flex;align-items:center;justify-content:center;
-  box-shadow:var(--glow-c);
 }
 .news-panel-cat{
   font-size:10px;color:var(--purple);margin-bottom:6px;
@@ -231,7 +221,7 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
   text-shadow:var(--glow-p);
 }
 .news-panel-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.5}
-.news-panel-meta{font-size:10px;color:var(--muted);margin-bottom:8px;font-family:'JetBrains Mono',monospace}
+.news-panel-meta{font-size:10px;color:var(--muted);margin-bottom:12px;font-family:'JetBrains Mono',monospace}
 .news-panel-body{font-size:13px;line-height:1.9;color:rgba(224,224,255,0.8);white-space:pre-wrap;word-break:break-word;margin-bottom:14px}
 .news-panel-btn{
   width:100%;background:transparent;
@@ -242,8 +232,8 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
   transition:background .2s;
 }
 .news-panel-btn:hover{background:rgba(0,245,255,0.08)}
-.news-panel-overlay{display:none} /* 不要になったが互換性のため残す */
-.news-panel-overlay.on{display:none}
+.news-panel-overlay{position:absolute;inset:0;background:rgba(0,0,15,.6);z-index:19;display:none;backdrop-filter:blur(2px)}
+.news-panel-overlay.on{display:block}
 
 /* スレッド内 */
 .posts-wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0;background:#f4f4f4}
@@ -1030,7 +1020,7 @@ function initGlobe(){
 
 function animate(){
   globeAnimId=requestAnimationFrame(animate);
-  if(!isDragging&&autoRotate){
+  if(!isDragging){
     globeSphere.rotation.y+=0.001;
   }
   // 夜景メッシュをglobeSphereと同期
@@ -1192,104 +1182,6 @@ function updateBubbles(){
   });
 }
 
-// ミニ地球儀
-let miniScene,miniCamera,miniRenderer,miniSphere,miniAnimId;
-let miniNightMesh,miniGlowMesh;
-
-function initMiniGlobe(){
-  const wrap=document.getElementById('mini-globe-wrap');
-  const canvas=document.getElementById('mini-globe-canvas');
-  if(miniRenderer){miniRenderer.dispose();}
-  const w=wrap.clientWidth,h=wrap.clientHeight;
-  miniScene=new THREE.Scene();
-  miniScene.background=new THREE.Color(0x00000f);
-  miniCamera=new THREE.PerspectiveCamera(45,w/h,0.1,100);
-  miniCamera.position.z=2.5;
-  miniRenderer=new THREE.WebGLRenderer({canvas,antialias:true});
-  miniRenderer.setSize(w,h);
-  miniRenderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
-
-  // 夜景地球
-  const geo=new THREE.SphereGeometry(1,64,64);
-  const loader=new THREE.TextureLoader();
-  const tex=loader.load('https://unpkg.com/three-globe/example/img/earth-night.jpg');
-  miniSphere=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:tex}));
-  miniScene.add(miniSphere);
-
-  // ワイヤーフレーム（薄く）
-  const wireMat=new THREE.MeshBasicMaterial({color:0x00f5ff,wireframe:true,transparent:true,opacity:0.08});
-  miniScene.add(new THREE.Mesh(new THREE.SphereGeometry(1.002,32,32),wireMat));
-
-  // 環境光
-  miniScene.add(new THREE.AmbientLight(0x00f5ff,0.3));
-  const pl=new THREE.PointLight(0x00f5ff,1.5,10);
-  pl.position.set(3,2,3);miniScene.add(pl);
-}
-
-function showMiniGlobe(lat,lng,countryName){
-  initMiniGlobe();
-  document.getElementById('mini-country-name').textContent=countryName||'';
-
-  // 座標グロー点
-  const glowGeo=new THREE.SphereGeometry(0.04,16,16);
-  const glowMat=new THREE.MeshBasicMaterial({color:0x00f5ff,transparent:true,opacity:0.9});
-  if(miniGlowMesh)miniScene.remove(miniGlowMesh);
-  miniGlowMesh=new THREE.Mesh(glowGeo,glowMat);
-  // latLngTo3D と同じ計算をインライン
-  const phi=(90-lat)*Math.PI/180;
-  const theta=(lng+180)*Math.PI/180;
-  const glowPos=new THREE.Vector3(
-    -1.01*Math.sin(phi)*Math.cos(theta),
-    1.01*Math.cos(phi),
-    1.01*Math.sin(phi)*Math.sin(theta)
-  );
-  miniGlowMesh.position.copy(glowPos);
-  miniScene.add(miniGlowMesh);
-
-  // 外側のグロー（大きい半透明球）
-  const outerGeo=new THREE.SphereGeometry(0.08,16,16);
-  const outerMat=new THREE.MeshBasicMaterial({color:0x00f5ff,transparent:true,opacity:0.2});
-  const outerMesh=new THREE.Mesh(outerGeo,outerMat);
-  outerMesh.position.copy(glowPos);
-  miniScene.add(outerMesh);
-
-  // カメラをその座標に向ける
-  // lat,lngから地球を回転させて座標を正面に持ってくる
-  const targetRotY=-(lng * Math.PI/180) - Math.PI/2;
-  const targetRotX=-(lat * Math.PI/180);
-  miniSphere.rotation.y=targetRotY;
-  miniSphere.rotation.x=targetRotX;
-  glowMesh_update();
-
-  // ミニ地球儀アニメーション
-  if(miniAnimId)cancelAnimationFrame(miniAnimId);
-  function miniAnimate(){
-    miniAnimId=requestAnimationFrame(miniAnimate);
-    // グローをパルス
-    const t=Date.now()*0.003;
-    glowMat.opacity=0.6+Math.sin(t)*0.3;
-    outerMat.opacity=0.1+Math.sin(t)*0.1;
-    // グロー位置を地球の回転に追従
-    glowMesh_update();
-    miniRenderer.render(miniScene,miniCamera);
-  }
-
-  function glowMesh_update(){
-    const phi2=(90-lat)*Math.PI/180;
-    const theta2=(lng+180)*Math.PI/180;
-    const pos2=new THREE.Vector3(
-      -1.01*Math.sin(phi2)*Math.cos(theta2),
-      1.01*Math.cos(phi2),
-      1.01*Math.sin(phi2)*Math.sin(theta2)
-    );
-    const worldPos=pos2.clone().applyEuler(miniSphere.rotation);
-    miniGlowMesh.position.copy(worldPos);
-    outerMesh.position.copy(worldPos);
-  }
-
-  miniAnimate();
-}
-
 // ニュース詳細パネル
 function openNewsPanel(t){
   currentPanelThread=t;
@@ -1299,16 +1191,6 @@ function openNewsPanel(t){
   document.getElementById('panel-meta').textContent=`🤖 生成: ${fmt(t.createdAt)} · ${t.country||''}`;
   document.getElementById('panel-body').textContent='読み込み中...';
   document.getElementById('panel-like-count').textContent='';
-
-  // パネルを先に開いてからミニ地球儀を初期化（サイズ確定後）
-  document.getElementById('news-panel').classList.add('open');
-  // パネルが開いてcanvasサイズが確定してから初期化
-  requestAnimationFrame(()=>{
-    requestAnimationFrame(()=>{
-      try{showMiniGlobe(t.lat||0,t.lng||0,t.country||'');}
-      catch(e){console.warn('ミニ地球儀エラー:',e.message);}
-    });
-  });
 
   // 発生日時表示
   const pubDateEl=document.getElementById('panel-pubdate');
@@ -1384,6 +1266,8 @@ function openNewsPanel(t){
     }
   });
 
+  document.getElementById('news-panel').classList.add('open');
+  document.getElementById('panel-overlay').classList.add('on');
 }
 
 document.getElementById('panel-close').onclick=closeNewsPanel;
@@ -1392,8 +1276,7 @@ function closeNewsPanel(){
   document.getElementById('news-panel').classList.remove('open');
   document.getElementById('panel-overlay').classList.remove('on');
   currentPanelThread=null;
-  autoRotate=true;
-  if(miniAnimId){cancelAnimationFrame(miniAnimId);miniAnimId=null;}
+  autoRotate=true; // パネルを閉じたら回転再開
 }
 
 // 記事選択パネル
