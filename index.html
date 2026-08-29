@@ -579,18 +579,67 @@ function compress(file){return new Promise((res,rej)=>{const r=new FileReader();
 // ════ Auth状態 ════
 onAuthStateChanged(auth,async user=>{
   if(isGuest)return;
-  if(!user){myUid=null;myAccountId=null;myNick=null;go('pg-start');return;}
-  myUid=user.uid;
-  if(isAdmin()){
-    const snap=await get(ref(db,'admin/pin'));
-    if(snap.exists()){document.getElementById('admin-pin-input').value='';document.getElementById('admin-pin-err').textContent='';go('pg-admin-pin');}
-    else{document.getElementById('admin-pin-set-input').value='';document.getElementById('admin-pin-set-err').textContent='';go('pg-admin-pin-set');}
+
+  if(!user){
+    myUid=null;
+    myAccountId=null;
+    myNick=null;
+    go('pg-start');
     return;
   }
-  if(isNewUser){go('pg-profile-set');return;}
+
+  myUid=user.uid;
+
+  // メール確認状態を最新に更新
+  try{
+    await reload(user);
+  }catch(e){
+    console.error('Auth reload error:',e);
+  }
+
+  if(isAdmin()){
+    const snap=await get(ref(db,'admin/pin'));
+
+    if(snap.exists()){
+      document.getElementById('admin-pin-input').value='';
+      document.getElementById('admin-pin-err').textContent='';
+      go('pg-admin-pin');
+    }else{
+      document.getElementById('admin-pin-set-input').value='';
+      document.getElementById('admin-pin-set-err').textContent='';
+      go('pg-admin-pin-set');
+    }
+
+    return;
+  }
+
+  // メール確認が完了していなければ先へ進ませない
+  if(!user.emailVerified){
+    go('pg-register');
+
+    const errEl=document.getElementById('reg-err');
+
+    if(errEl){
+      errEl.textContent=
+        'メールアドレスの確認が完了していません。確認メールを確認してください。';
+    }
+
+    return;
+  }
+
+  // メール確認済みならアカウント情報を確認
   const snap=await get(ref(db,`accounts/${user.uid}`));
-  if(!snap.exists()){go('pg-profile-set');return;}
-  const acc=snap.val();myAccountId=acc.accountId;myNick=acc.nick||null;
+
+  if(!snap.exists()){
+    go('pg-profile-set');
+    return;
+  }
+
+  const acc=snap.val();
+
+  myAccountId=acc.accountId;
+  myNick=acc.nick||null;
+
   enterApp();
 });
 
