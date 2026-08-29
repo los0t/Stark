@@ -694,9 +694,10 @@ let isDragging=false,prevTouch={x:0,y:0};
 let rotVelX=0,rotVelY=0;
 let globeThreads=[];
 let bubbleEls=[];
-let globeZoom=2.8; // カメラZ距離（小さいほどズームイン）
+let globeZoom=2.8;
 const ZOOM_MIN=1.5,ZOOM_MAX=5.0;
 let pinchStartDist=0,pinchStartZoom=2.8;
+let autoRotate=true; // 自動回転フラグ
 
 function latLngTo3D(lat,lng,r){
   const phi=(90-lat)*Math.PI/180;
@@ -1140,6 +1141,7 @@ function renderBubbles(){
     btn.textContent=isMulti?String(count):'';
 
     const onTap=()=>{
+      autoRotate=false; // 記事を開いたら回転停止
       if(count===1)openNewsPanel(threads[0]);
       else openSelectPanel(threads);
     };
@@ -1274,6 +1276,7 @@ function closeNewsPanel(){
   document.getElementById('news-panel').classList.remove('open');
   document.getElementById('panel-overlay').classList.remove('on');
   currentPanelThread=null;
+  autoRotate=true; // パネルを閉じたら回転再開
 }
 
 // 記事選択パネル
@@ -1282,6 +1285,7 @@ document.getElementById('select-overlay').onclick=closeSelectPanel;
 function closeSelectPanel(){
   document.getElementById('news-select-panel').classList.remove('open');
   document.getElementById('select-overlay').classList.remove('on');
+  autoRotate=true; // 選択パネルを閉じたら回転再開
 }
 function openSelectPanel(threads){
   const locEl=document.getElementById('select-location');
