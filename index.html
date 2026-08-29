@@ -314,6 +314,20 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
 
 ::-webkit-scrollbar{width:3px}
 ::-webkit-scrollbar-thumb{background:rgba(0,245,255,0.2);border-radius:2px}
+
+/* 記事選択リスト */
+.select-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 0;border-bottom:1px solid rgba(0,245,255,0.1);
+  cursor:pointer;transition:background .1s;
+}
+.select-item:active{background:rgba(0,245,255,0.05)}
+.select-item:last-child{border-bottom:none}
+.select-item-body{flex:1;min-width:0}
+.select-item-cat{font-size:9px;color:var(--purple);font-family:'JetBrains Mono',monospace;letter-spacing:1px;margin-bottom:3px}
+.select-item-title{font-size:12px;font-weight:700;color:var(--text);line-height:1.4}
+.select-item-meta{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:3px}
+.select-item-arrow{color:var(--cyan);font-size:14px;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -399,6 +413,14 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
     <canvas id="globe-canvas"></canvas>
     <!-- 吹き出しはJSで動的生成 -->
   </div>
+  <!-- 記事選択パネル（座標被り時） -->
+  <div class="news-panel-overlay" id="select-overlay"></div>
+  <div class="news-panel" id="news-select-panel" style="max-height:70vh">
+    <button class="news-panel-close" id="select-close">✕</button>
+    <div style="font-size:10px;color:var(--purple);font-family:'JetBrains Mono',monospace;letter-spacing:2px;margin-bottom:12px" id="select-location"></div>
+    <div id="select-list"></div>
+  </div>
+
   <!-- ニュース詳細パネル -->
   <div class="news-panel-overlay" id="panel-overlay"></div>
   <div class="news-panel" id="news-panel">
@@ -1048,99 +1070,113 @@ function onMouseMove(e){
 }
 function onMouseUp(){isDragging=false;}
 
-// 閲覧数に応じたスケール計算（最小1.0、最大2.0）
+// 閲覧数スケール計算
 function getViewScale(views){
   if(!views||views<=0)return 1.0;
-  return Math.min(2.0, 1.0 + Math.log10(views+1)*0.5);
+  return Math.min(2.0,1.0+Math.log10(views+1)*0.5);
 }
 
-// 吹き出しサイズを閲覧数に応じて更新
-function updateBubbleSizes(){
-  let bIdx=0;
-  globeThreads.forEach(t=>{
-    const bubble=bubbleEls[bIdx*2+1];
-    if(bubble){
-      const scale=getViewScale(t.views||0);
-      bubble.style.transform=`translate(-50%,-100%) scale(${scale})`;
-      // 閲覧数が多いと赤みがかる
-      if(t.views>=100) bubble.style.borderColor='#e53935';
-      else if(t.views>=10) bubble.style.borderColor='#f97316';
-      else bubble.style.borderColor='#111';
-    }
-    bIdx++;
-  });
+// 座標キー（小数点1桁に丸める）
+function coordKey(lat,lng){
+  return `${Math.round(lat*10)/10},${Math.round(lng*10)/10}`;
 }
 
-// 吹き出し描画
+// グループリスト
+let bubbleGroups=[];
+
+// 吹き出し描画（座標グループ化）
 function renderBubbles(){
   bubbleEls.forEach(el=>el.remove());
   bubbleEls=[];
+  bubbleGroups=[];
   const wrap=document.getElementById('globe-wrap');
 
-  // Firebaseから閲覧数を取得してthreadsに反映
-  get(ref(db,'threads')).then(snap=>{
-    const data=snap.val()||{};
-    globeThreads.forEach(t=>{
-      if(data[t.tid])t.views=data[t.tid].views||0;
-    });
-    updateBubbleSizes();
+  // 座標でグループ化
+  const groups={};
+  globeThreads.forEach(t=>{
+    const key=coordKey(t.lat,t.lng);
+    if(!groups[key])groups[key]={lat:t.lat,lng:t.lng,threads:[]};
+    groups[key].threads.push(t);
   });
 
-  globeThreads.forEach(t=>{
+  // 閲覧数取得
+  get(ref(db,'threads')).then(snap=>{
+    const data=snap.val()||{};
+    globeThreads.forEach(t=>{if(data[t.tid])t.views=data[t.tid].views||0;});
+  });
+
+  Object.entries(groups).forEach(([key,g])=>{
+    const {lat,lng,threads}=g;
+    const count=threads.length;
+
+    // ドット（パルスアニメーション）
     const dot=document.createElement('div');
     dot.className='bubble-dot';
     wrap.appendChild(dot);
-    const bubble=document.createElement('div');
-    bubble.className='bubble';
-    const title=t.title.replace(/^【|】$/g,'');
-    const shortTitle=title.length>30?title.slice(0,30)+'…':title;
-    const views=t.views||0;
-    const viewsStr=views>0?` 👀${views}`:'';
-    const pubStr=t.newsPubDate?t.newsPubDate.slice(0,10):'';
-    bubble.innerHTML=`${esc(shortTitle)}<div class="bubble-date">${pubStr?pubStr+' · ':''}${esc(t.country||'')}${viewsStr}</div>`;
-    bubble.addEventListener('click',()=>openNewsPanel(t));
-    bubble.addEventListener('touchend',e=>{e.preventDefault();openNewsPanel(t);});
-    wrap.appendChild(bubble);
-    bubbleEls.push(dot,bubble);
-    dot._thread=t;bubble._thread=t;
+
+    // 丸ボタン
+    const btn=document.createElement('div');
+    const isMulti=count>1;
+    btn.style.cssText=[
+      'position:absolute',
+      `width:${isMulti?30:22}px`,
+      `height:${isMulti?30:22}px`,
+      'border-radius:50%',
+      `background:${isMulti?'rgba(155,89,255,0.9)':'rgba(0,245,255,0.15)'}`,
+      `border:2px solid ${isMulti?'#9b59ff':'#00f5ff'}`,
+      `box-shadow:0 0 ${isMulti?14:8}px ${isMulti?'rgba(155,89,255,0.9)':'rgba(0,245,255,0.7)'}`,
+      'display:none',
+      'align-items:center',
+      'justify-content:center',
+      'cursor:pointer',
+      'pointer-events:auto',
+      'transform:translate(-50%,-50%)',
+      'z-index:11',
+      "font-family:'JetBrains Mono',monospace",
+      `font-size:${isMulti?11:0}px`,
+      'font-weight:700',
+      'color:#fff',
+    ].join(';');
+    btn.textContent=isMulti?String(count):'';
+
+    const onTap=()=>{
+      if(count===1)openNewsPanel(threads[0]);
+      else openSelectPanel(threads);
+    };
+    btn.addEventListener('click',onTap);
+    btn.addEventListener('touchend',e=>{e.preventDefault();onTap();});
+    wrap.appendChild(btn);
+
+    bubbleEls.push(dot,btn);
+    bubbleGroups.push({lat,lng,threads,dot,btn});
   });
 }
+
+function updateBubbleSizes(){} // 互換性のため
 
 function updateBubbles(){
   if(!globeSphere||!globeCamera||!globeRenderer)return;
   const wrap=document.getElementById('globe-wrap');
   const w=wrap.clientWidth,h=wrap.clientHeight;
-  let bIdx=0;
-  globeThreads.forEach(t=>{
-    const dot=bubbleEls[bIdx*2];
-    const bubble=bubbleEls[bIdx*2+1];
-    if(!dot||!bubble){bIdx++;return;}
 
-    // 3D座標をスクリーン座標に変換
-    const pos=latLngTo3D(t.lat,t.lng,1);
-    // 地球の回転を適用
+  bubbleGroups.forEach(g=>{
+    const {lat,lng,dot,btn}=g;
+    const pos=latLngTo3D(lat,lng,1);
     const worldPos=pos.clone().applyEuler(globeSphere.rotation);
     const projected=worldPos.clone().project(globeCamera);
-
-    // 裏側判定：worldPosのZ成分が正なら表側
     const isFront=worldPos.z>0;
-
     const sx=(projected.x+1)/2*w;
     const sy=(-(projected.y)+1)/2*h;
 
-    // ズームが近いほど吹き出しを大きく
-    const zoomScale=Math.max(0.7,Math.min(1.3,(ZOOM_MAX-globeZoom)/(ZOOM_MAX-ZOOM_MIN)*0.6+0.7));
     if(!isFront||projected.z>1||sx<0||sx>w||sy<0||sy>h){
-      dot.style.display='none';bubble.style.display='none';
+      dot.style.display='none';
+      btn.style.display='none';
     } else {
-      dot.style.display='block';bubble.style.display='block';
+      dot.style.display='block';
       dot.style.left=sx+'px';dot.style.top=sy+'px';
-      bubble.style.left=sx+'px';bubble.style.top=(sy-10)+'px';
-      const viewScale=getViewScale(t.views||0);
-      bubble.style.transformOrigin='bottom center';
-      bubble.style.transform=`translate(-50%,-100%) scale(${viewScale*zoomScale})`;
+      btn.style.display='flex';
+      btn.style.left=sx+'px';btn.style.top=(sy-18)+'px';
     }
-    bIdx++;
   });
 }
 
@@ -1238,6 +1274,36 @@ function closeNewsPanel(){
   document.getElementById('news-panel').classList.remove('open');
   document.getElementById('panel-overlay').classList.remove('on');
   currentPanelThread=null;
+}
+
+// 記事選択パネル
+document.getElementById('select-close').onclick=closeSelectPanel;
+document.getElementById('select-overlay').onclick=closeSelectPanel;
+function closeSelectPanel(){
+  document.getElementById('news-select-panel').classList.remove('open');
+  document.getElementById('select-overlay').classList.remove('on');
+}
+function openSelectPanel(threads){
+  const locEl=document.getElementById('select-location');
+  locEl.textContent=`📍 ${threads[0].country||''} · ${threads.length}件のニュース`;
+  const list=document.getElementById('select-list');
+  list.innerHTML='';
+  threads.forEach(t=>{
+    const title=t.title.replace(/^【|】$/g,'');
+    const item=document.createElement('div');
+    item.className='select-item';
+    item.innerHTML=`
+      <div class="select-item-body">
+        <div class="select-item-cat">${t.newsCategory||'NEWS'}</div>
+        <div class="select-item-title">${esc(title)}</div>
+        <div class="select-item-meta">${fmt(t.createdAt)}${t.newsPubDate?' · '+t.newsPubDate.slice(0,10):''}</div>
+      </div>
+      <div class="select-item-arrow">›</div>`;
+    item.onclick=()=>{closeSelectPanel();setTimeout(()=>openNewsPanel(t),200);};
+    list.appendChild(item);
+  });
+  document.getElementById('news-select-panel').classList.add('open');
+  document.getElementById('select-overlay').classList.add('on');
 }
 
 document.getElementById('panel-enter-btn').onclick=()=>{
