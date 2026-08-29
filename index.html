@@ -189,31 +189,41 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
 .bubble-date{font-size:8px;color:rgba(0,245,255,0.5);font-weight:400;margin-top:2px}
 
 /* ニュース詳細パネル */
+/* 詳細パネル：全画面オーバーレイ */
 .news-panel{
-  position:absolute;bottom:0;left:0;right:0;
-  background:rgba(0,5,25,0.97);
-  border-top:1px solid var(--cyan);
-  border-radius:0;
-  padding:20px 16px 32px;
-  max-height:60vh;overflow-y:auto;
-  transform:translateY(100%);
-  transition:transform .3s cubic-bezier(.4,0,.2,1);
-  z-index:20;
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;
+  background:transparent;
+  z-index:30;
+  visibility:hidden;
+  pointer-events:none;
+}
+.news-panel.open{visibility:visible;pointer-events:auto;}
+
+/* 上半分：ミニ地球儀エリア */
+.news-panel-globe-area{
+  flex:0 0 45%;
+  position:relative;
+  overflow:hidden;
+}
+
+/* 下半分：記事内容 */
+.news-panel-content{
+  flex:1;
+  background:rgba(0,3,15,0.96);
+  border-top:1px solid rgba(0,245,255,0.3);
+  overflow-y:auto;
   -webkit-overflow-scrolling:touch;
+  padding:16px 16px 32px;
   backdrop-filter:blur(20px);
-  box-shadow:0 -4px 30px rgba(0,245,255,0.15);
 }
-.news-panel::before{
-  content:'';position:absolute;top:0;left:40px;right:40px;height:1px;
-  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
-}
-.news-panel.open{transform:translateY(0)}
 .news-panel-close{
-  position:absolute;top:12px;right:14px;
-  background:transparent;border:1px solid rgba(0,245,255,0.3);
-  color:var(--cyan);width:28px;height:28px;
-  border-radius:2px;cursor:pointer;font-size:14px;
+  position:absolute;top:12px;right:14px;z-index:35;
+  background:rgba(0,3,15,0.8);border:1px solid rgba(0,245,255,0.4);
+  color:var(--cyan);width:32px;height:32px;
+  border-radius:2px;cursor:pointer;font-size:16px;
   display:flex;align-items:center;justify-content:center;
+  box-shadow:var(--glow-c);
 }
 .news-panel-cat{
   font-size:10px;color:var(--purple);margin-bottom:6px;
@@ -221,7 +231,7 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
   text-shadow:var(--glow-p);
 }
 .news-panel-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.5}
-.news-panel-meta{font-size:10px;color:var(--muted);margin-bottom:12px;font-family:'JetBrains Mono',monospace}
+.news-panel-meta{font-size:10px;color:var(--muted);margin-bottom:8px;font-family:'JetBrains Mono',monospace}
 .news-panel-body{font-size:13px;line-height:1.9;color:rgba(224,224,255,0.8);white-space:pre-wrap;word-break:break-word;margin-bottom:14px}
 .news-panel-btn{
   width:100%;background:transparent;
@@ -232,8 +242,8 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
   transition:background .2s;
 }
 .news-panel-btn:hover{background:rgba(0,245,255,0.08)}
-.news-panel-overlay{position:absolute;inset:0;background:rgba(0,0,15,.6);z-index:19;display:none;backdrop-filter:blur(2px)}
-.news-panel-overlay.on{display:block}
+.news-panel-overlay{display:none} /* 不要になったが互換性のため残す */
+.news-panel-overlay.on{display:none}
 
 /* スレッド内 */
 .posts-wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0;background:#f4f4f4}
@@ -1292,11 +1302,13 @@ function openNewsPanel(t){
 
   // パネルを先に開いてからミニ地球儀を初期化（サイズ確定後）
   document.getElementById('news-panel').classList.add('open');
-  document.getElementById('panel-overlay').classList.add('on');
-  setTimeout(()=>{
-    try{showMiniGlobe(t.lat||0,t.lng||0,t.country||'');}
-    catch(e){console.warn('ミニ地球儀エラー:',e.message);}
-  },100);
+  // パネルが開いてcanvasサイズが確定してから初期化
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      try{showMiniGlobe(t.lat||0,t.lng||0,t.country||'');}
+      catch(e){console.warn('ミニ地球儀エラー:',e.message);}
+    });
+  });
 
   // 発生日時表示
   const pubDateEl=document.getElementById('panel-pubdate');
