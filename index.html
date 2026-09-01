@@ -1,18 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  
-  
-<!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-VL84M08CLK"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-VL84M08CLK');
-</script>
-  
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Ecstasy</title>
@@ -20,8 +8,16 @@
 <meta property="og:description" content="Ecstasyへようこそ">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://los0t.github.io/Stark/">
-<meta property="og:image" content="https://los0t.github.io/Stark/無題62_20260829222538.png">
+<meta property="og:image" content="mark_chuui.png">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-VL84M08CLK"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-VL84M08CLK');
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -201,31 +197,41 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
 .bubble-date{font-size:8px;color:rgba(0,245,255,0.5);font-weight:400;margin-top:2px}
 
 /* ニュース詳細パネル */
+/* 詳細パネル：全画面オーバーレイ */
 .news-panel{
-  position:absolute;bottom:0;left:0;right:0;
-  background:rgba(0,5,25,0.97);
-  border-top:1px solid var(--cyan);
-  border-radius:0;
-  padding:20px 16px 32px;
-  max-height:60vh;overflow-y:auto;
-  transform:translateY(100%);
-  transition:transform .3s cubic-bezier(.4,0,.2,1);
-  z-index:20;
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;
+  background:transparent;
+  z-index:30;
+  visibility:hidden;
+  pointer-events:none;
+}
+.news-panel.open{visibility:visible;pointer-events:auto;}
+
+/* 上半分：ミニ地球儀エリア */
+.news-panel-globe-area{
+  flex:0 0 45%;
+  position:relative;
+  overflow:hidden;
+}
+
+/* 下半分：記事内容 */
+.news-panel-content{
+  flex:1;
+  background:rgba(0,3,15,0.96);
+  border-top:1px solid rgba(0,245,255,0.3);
+  overflow-y:auto;
   -webkit-overflow-scrolling:touch;
+  padding:16px 16px 32px;
   backdrop-filter:blur(20px);
-  box-shadow:0 -4px 30px rgba(0,245,255,0.15);
 }
-.news-panel::before{
-  content:'';position:absolute;top:0;left:40px;right:40px;height:1px;
-  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
-}
-.news-panel.open{transform:translateY(0)}
 .news-panel-close{
-  position:absolute;top:12px;right:14px;
-  background:transparent;border:1px solid rgba(0,245,255,0.3);
-  color:var(--cyan);width:28px;height:28px;
-  border-radius:2px;cursor:pointer;font-size:14px;
+  position:absolute;top:12px;right:14px;z-index:35;
+  background:rgba(0,3,15,0.8);border:1px solid rgba(0,245,255,0.4);
+  color:var(--cyan);width:32px;height:32px;
+  border-radius:2px;cursor:pointer;font-size:16px;
   display:flex;align-items:center;justify-content:center;
+  box-shadow:var(--glow-c);
 }
 .news-panel-cat{
   font-size:10px;color:var(--purple);margin-bottom:6px;
@@ -233,7 +239,7 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
   text-shadow:var(--glow-p);
 }
 .news-panel-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.5}
-.news-panel-meta{font-size:10px;color:var(--muted);margin-bottom:12px;font-family:'JetBrains Mono',monospace}
+.news-panel-meta{font-size:10px;color:var(--muted);margin-bottom:8px;font-family:'JetBrains Mono',monospace}
 .news-panel-body{font-size:13px;line-height:1.9;color:rgba(224,224,255,0.8);white-space:pre-wrap;word-break:break-word;margin-bottom:14px}
 .news-panel-btn{
   width:100%;background:transparent;
@@ -244,8 +250,8 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
   transition:background .2s;
 }
 .news-panel-btn:hover{background:rgba(0,245,255,0.08)}
-.news-panel-overlay{position:absolute;inset:0;background:rgba(0,0,15,.6);z-index:19;display:none;backdrop-filter:blur(2px)}
-.news-panel-overlay.on{display:block}
+.news-panel-overlay{display:none} /* 不要になったが互換性のため残す */
+.news-panel-overlay.on{display:none}
 
 /* スレッド内 */
 .posts-wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0;background:#f4f4f4}
@@ -446,14 +452,14 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
     <div style="display:flex;gap:10px;margin-bottom:10px">
       <button class="like-btn" id="panel-like-btn" style="flex:1;justify-content:center;padding:10px">🤍 <span id="panel-like-count"></span></button>
     </div>
-    <button class="news-panel-btn" id="panel-enter-btn">このスレに入る 💬</button>
+    <button class="news-panel-btn" id="panel-enter-btn">コメントする 💬</button>
   </div>
 </div>
 
-<!-- スレッド内 -->
+<!-- 記事コメント画面 -->
 <div id="pg-thread" class="pg">
   <div class="hdr">
-    <button class="hdr-back" id="btn-back">← 戻る</button>
+    <button class="hdr-back" id="btn-back">← 記事に戻る</button>
     <div class="hdr-thread-title" id="thread-ttl"></div>
     <div class="hdr-badge" id="badge-thread"></div>
   </div>
@@ -472,7 +478,7 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
   <div class="input-bar">
     <button class="img-btn" id="img-btn">🖼</button>
     <input type="file" id="img-file" accept="image/*" style="display:none">
-    <textarea id="post-input" placeholder="コメントする…" rows="1" maxlength="1000"></textarea>
+    <textarea id="post-input" placeholder="コメントを入力…" rows="1" maxlength="1000"></textarea>
     <button class="send-btn" id="send-btn">➤</button>
   </div>
 </div>
@@ -528,7 +534,7 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,sendPasswordResetEmail,sendEmailVerification,reload,onAuthStateChanged,signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,sendPasswordResetEmail,onAuthStateChanged,signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getDatabase,ref,push,onValue,remove,get,set,update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const ADMIN_UID = "X6oRvkFZS9bgUpaIT44xi8zfv523";
@@ -591,67 +597,18 @@ function compress(file){return new Promise((res,rej)=>{const r=new FileReader();
 // ════ Auth状態 ════
 onAuthStateChanged(auth,async user=>{
   if(isGuest)return;
-
-  if(!user){
-    myUid=null;
-    myAccountId=null;
-    myNick=null;
-    go('pg-start');
-    return;
-  }
-
+  if(!user){myUid=null;myAccountId=null;myNick=null;go('pg-start');return;}
   myUid=user.uid;
-
-  // メール確認状態を最新に更新
-  try{
-    await reload(user);
-  }catch(e){
-    console.error('Auth reload error:',e);
-  }
-
   if(isAdmin()){
     const snap=await get(ref(db,'admin/pin'));
-
-    if(snap.exists()){
-      document.getElementById('admin-pin-input').value='';
-      document.getElementById('admin-pin-err').textContent='';
-      go('pg-admin-pin');
-    }else{
-      document.getElementById('admin-pin-set-input').value='';
-      document.getElementById('admin-pin-set-err').textContent='';
-      go('pg-admin-pin-set');
-    }
-
+    if(snap.exists()){document.getElementById('admin-pin-input').value='';document.getElementById('admin-pin-err').textContent='';go('pg-admin-pin');}
+    else{document.getElementById('admin-pin-set-input').value='';document.getElementById('admin-pin-set-err').textContent='';go('pg-admin-pin-set');}
     return;
   }
-
-  // メール確認が完了していなければ先へ進ませない
-  if(!user.emailVerified){
-    go('pg-register');
-
-    const errEl=document.getElementById('reg-err');
-
-    if(errEl){
-      errEl.textContent=
-        'メールアドレスの確認が完了していません。確認メールを確認してください。';
-    }
-
-    return;
-  }
-
-  // メール確認済みならアカウント情報を確認
+  if(isNewUser){go('pg-profile-set');return;}
   const snap=await get(ref(db,`accounts/${user.uid}`));
-
-  if(!snap.exists()){
-    go('pg-profile-set');
-    return;
-  }
-
-  const acc=snap.val();
-
-  myAccountId=acc.accountId;
-  myNick=acc.nick||null;
-
+  if(!snap.exists()){go('pg-profile-set');return;}
+  const acc=snap.val();myAccountId=acc.accountId;myNick=acc.nick||null;
   enterApp();
 });
 
@@ -698,67 +655,11 @@ async function doRegister(){
   const email=document.getElementById('reg-email').value.trim();
   const pw=document.getElementById('reg-pw').value;
   const pw2=document.getElementById('reg-pw2').value;
-  const errEl=document.getElementById('reg-err');
-
-  errEl.textContent='';
-
-  if(!email||!pw||!pw2){
-    errEl.textContent='すべての項目を入力してください';
-    return;
-  }
-
-  if(pw!==pw2){
-    errEl.textContent='パスワードが一致しません';
-    return;
-  }
-
-  if(pw.length<6){
-    errEl.textContent='パスワードは6文字以上にしてください';
-    return;
-  }
-
-  try{
-
-    const currentUser=auth.currentUser;
-
-    // すでに登録済みのユーザーなら再登録しない
-    if(currentUser && currentUser.email===email){
-
-      await reload(currentUser);
-
-      // メール確認済みならプロフィール設定へ
-      if(currentUser.emailVerified){
-
-        myUid=currentUser.uid;
-        go('pg-profile-set');
-        return;
-
-      }
-
-      // まだ確認されていない
-      errEl.textContent=
-        'まだメールアドレスが確認されていません。確認メールのリンクを開いてください。';
-
-      return;
-    }
-
-    // 新規登録
-    isNewUser=true;
-
-    const result=
-      await createUserWithEmailAndPassword(auth,email,pw);
-
-    // 確認メールを送信
-    await sendEmailVerification(result.user);
-
-    errEl.textContent=
-      '確認メールを送信しました。確認後、「次へ」を押してください。';
-
-  }catch(e){
-
-    errEl.textContent=fbErrMsg(e.code);
-
-  }
+  const errEl=document.getElementById('reg-err');errEl.textContent='';
+  if(!email||!pw||!pw2){errEl.textContent='すべての項目を入力してください';return;}
+  if(pw!==pw2){errEl.textContent='パスワードが一致しません';return;}
+  if(pw.length<6){errEl.textContent='パスワードは6文字以上にしてください';return;}
+  try{isNewUser=true;await createUserWithEmailAndPassword(auth,email,pw);}catch(e){errEl.textContent=fbErrMsg(e.code);}
 }
 
 // ════ パスワードリセット ════
@@ -1137,7 +1038,7 @@ function initGlobe(){
 
 function animate(){
   globeAnimId=requestAnimationFrame(animate);
-  if(!isDragging){
+  if(!isDragging&&autoRotate){
     globeSphere.rotation.y+=0.001;
   }
   // 夜景メッシュをglobeSphereと同期
@@ -1299,6 +1200,104 @@ function updateBubbles(){
   });
 }
 
+// ミニ地球儀
+let miniScene,miniCamera,miniRenderer,miniSphere,miniAnimId;
+let miniNightMesh,miniGlowMesh;
+
+function initMiniGlobe(){
+  const wrap=document.getElementById('mini-globe-wrap');
+  const canvas=document.getElementById('mini-globe-canvas');
+  if(miniRenderer){miniRenderer.dispose();}
+  const w=wrap.clientWidth,h=wrap.clientHeight;
+  miniScene=new THREE.Scene();
+  miniScene.background=new THREE.Color(0x00000f);
+  miniCamera=new THREE.PerspectiveCamera(45,w/h,0.1,100);
+  miniCamera.position.z=2.5;
+  miniRenderer=new THREE.WebGLRenderer({canvas,antialias:true});
+  miniRenderer.setSize(w,h);
+  miniRenderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+
+  // 夜景地球
+  const geo=new THREE.SphereGeometry(1,64,64);
+  const loader=new THREE.TextureLoader();
+  const tex=loader.load('https://unpkg.com/three-globe/example/img/earth-night.jpg');
+  miniSphere=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:tex}));
+  miniScene.add(miniSphere);
+
+  // ワイヤーフレーム（薄く）
+  const wireMat=new THREE.MeshBasicMaterial({color:0x00f5ff,wireframe:true,transparent:true,opacity:0.08});
+  miniScene.add(new THREE.Mesh(new THREE.SphereGeometry(1.002,32,32),wireMat));
+
+  // 環境光
+  miniScene.add(new THREE.AmbientLight(0x00f5ff,0.3));
+  const pl=new THREE.PointLight(0x00f5ff,1.5,10);
+  pl.position.set(3,2,3);miniScene.add(pl);
+}
+
+function showMiniGlobe(lat,lng,countryName){
+  initMiniGlobe();
+  document.getElementById('mini-country-name').textContent=countryName||'';
+
+  // 座標グロー点
+  const glowGeo=new THREE.SphereGeometry(0.04,16,16);
+  const glowMat=new THREE.MeshBasicMaterial({color:0x00f5ff,transparent:true,opacity:0.9});
+  if(miniGlowMesh)miniScene.remove(miniGlowMesh);
+  miniGlowMesh=new THREE.Mesh(glowGeo,glowMat);
+  // latLngTo3D と同じ計算をインライン
+  const phi=(90-lat)*Math.PI/180;
+  const theta=(lng+180)*Math.PI/180;
+  const glowPos=new THREE.Vector3(
+    -1.01*Math.sin(phi)*Math.cos(theta),
+    1.01*Math.cos(phi),
+    1.01*Math.sin(phi)*Math.sin(theta)
+  );
+  miniGlowMesh.position.copy(glowPos);
+  miniScene.add(miniGlowMesh);
+
+  // 外側のグロー（大きい半透明球）
+  const outerGeo=new THREE.SphereGeometry(0.08,16,16);
+  const outerMat=new THREE.MeshBasicMaterial({color:0x00f5ff,transparent:true,opacity:0.2});
+  const outerMesh=new THREE.Mesh(outerGeo,outerMat);
+  outerMesh.position.copy(glowPos);
+  miniScene.add(outerMesh);
+
+  // カメラをその座標に向ける
+  // lat,lngから地球を回転させて座標を正面に持ってくる
+  const targetRotY=-(lng * Math.PI/180) - Math.PI/2;
+  const targetRotX=-(lat * Math.PI/180);
+  miniSphere.rotation.y=targetRotY;
+  miniSphere.rotation.x=targetRotX;
+  glowMesh_update();
+
+  // ミニ地球儀アニメーション
+  if(miniAnimId)cancelAnimationFrame(miniAnimId);
+  function miniAnimate(){
+    miniAnimId=requestAnimationFrame(miniAnimate);
+    // グローをパルス
+    const t=Date.now()*0.003;
+    glowMat.opacity=0.6+Math.sin(t)*0.3;
+    outerMat.opacity=0.1+Math.sin(t)*0.1;
+    // グロー位置を地球の回転に追従
+    glowMesh_update();
+    miniRenderer.render(miniScene,miniCamera);
+  }
+
+  function glowMesh_update(){
+    const phi2=(90-lat)*Math.PI/180;
+    const theta2=(lng+180)*Math.PI/180;
+    const pos2=new THREE.Vector3(
+      -1.01*Math.sin(phi2)*Math.cos(theta2),
+      1.01*Math.cos(phi2),
+      1.01*Math.sin(phi2)*Math.sin(theta2)
+    );
+    const worldPos=pos2.clone().applyEuler(miniSphere.rotation);
+    miniGlowMesh.position.copy(worldPos);
+    outerMesh.position.copy(worldPos);
+  }
+
+  miniAnimate();
+}
+
 // ニュース詳細パネル
 function openNewsPanel(t){
   currentPanelThread=t;
@@ -1309,6 +1308,16 @@ function openNewsPanel(t){
   document.getElementById('panel-body').textContent='読み込み中...';
   document.getElementById('panel-like-count').textContent='';
 
+  // パネルを先に開いてからミニ地球儀を初期化（サイズ確定後）
+  document.getElementById('news-panel').classList.add('open');
+  // パネルが開いてcanvasサイズが確定してから初期化
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      try{showMiniGlobe(t.lat||0,t.lng||0,t.country||'');}
+      catch(e){console.warn('ミニ地球儀エラー:',e.message);}
+    });
+  });
+
   // 発生日時表示
   const pubDateEl=document.getElementById('panel-pubdate');
   if(t.newsPubDate){
@@ -1318,7 +1327,7 @@ function openNewsPanel(t){
     pubDateEl.style.display='none';
   }
 
-  // 閲覧数をインクリメント
+  // 閲覧数をインクリメント＋コメント数表示
   const viewRef=ref(db,`threads/${t.tid}/views`);
   get(viewRef).then(snap=>{
     const newViews=(snap.val()||0)+1;
@@ -1326,6 +1335,11 @@ function openNewsPanel(t){
     document.getElementById('panel-views').textContent=`👀 ${newViews}`;
     t.views=newViews;
     updateBubbleSizes();
+  });
+  // コメント数を取得してボタンに表示
+  get(ref(db,`posts/${t.tid}`)).then(snap=>{
+    const count=snap.exists()?Object.keys(snap.val()).length:0;
+    document.getElementById('panel-enter-btn').textContent=`💬 コメント ${count}件`;
   });
 
   // 本文取得（最初の投稿）
@@ -1383,8 +1397,6 @@ function openNewsPanel(t){
     }
   });
 
-  document.getElementById('news-panel').classList.add('open');
-  document.getElementById('panel-overlay').classList.add('on');
 }
 
 document.getElementById('panel-close').onclick=closeNewsPanel;
@@ -1393,7 +1405,8 @@ function closeNewsPanel(){
   document.getElementById('news-panel').classList.remove('open');
   document.getElementById('panel-overlay').classList.remove('on');
   currentPanelThread=null;
-  autoRotate=true; // パネルを閉じたら回転再開
+  autoRotate=true;
+  if(miniAnimId){cancelAnimationFrame(miniAnimId);miniAnimId=null;}
 }
 
 // 記事選択パネル
@@ -1430,8 +1443,10 @@ function openSelectPanel(threads){
 document.getElementById('panel-enter-btn').onclick=()=>{
   if(!currentPanelThread)return;
   const t=currentPanelThread;
-  closeNewsPanel();
-  setTimeout(()=>enterThread(t.tid,t.title),100);
+  // パネルは閉じずにコメント画面へ（戻る時にパネルを再表示するため）
+  document.getElementById('news-panel').classList.remove('open');
+  document.getElementById('panel-overlay').classList.remove('on');
+  enterThread(t.tid,t.title);
 };
 
 // ════ スレッド内 ════
@@ -1466,7 +1481,15 @@ function enterThread(tid,title){
   onValue(ref(db,`posts/${tid}`),snap=>{if(curTid!==tid)return;renderPosts(snap.val()||{});});
 }
 
-document.getElementById('btn-back').onclick=()=>{curTid=null;replyTo=null;pendingImg=null;go('pg-list');};
+document.getElementById('btn-back').onclick=()=>{
+  curTid=null;replyTo=null;pendingImg=null;
+  // パネルが開いていた場合は地球儀画面に戻ってパネルを再表示
+  go('pg-list');
+  if(currentPanelThread){
+    document.getElementById('news-panel').classList.add('open');
+    document.getElementById('panel-overlay').classList.add('on');
+  }
+};
 
 function renderPosts(data){
   const area=document.getElementById('posts-area');
