@@ -288,6 +288,30 @@ sourceIndex:選んだ候補の番号(1〜${sample.length})`;
 }
 
 // ══════════════════════════════════════════════
+//  OGP画像を取得
+// ══════════════════════════════════════════════
+async function fetchOgpImage(url) {
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'EcstasyNewsBot/1.0' },
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    // og:image を抽出
+    const match = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+                || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+    if (match && match[1]) {
+      const imgUrl = match[1].startsWith('http') ? match[1] : new URL(match[1], url).href;
+      return imgUrl;
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// ══════════════════════════════════════════════
 //  Firebaseに投稿
 // ══════════════════════════════════════════════
 async function postToFirebase(token, article) {
@@ -295,6 +319,12 @@ async function postToFirebase(token, article) {
   const displayTitle = `【${article.title}】`;
   let postText = `${displayTitle}\n\n${article.summary}\n\n📰 出典\n`;
   for (const s of article.sources) postText += `・${s.name}\n${s.url}\n`;
+
+  // OGP画像取得（失敗してもOK）
+  const sourceUrl = article.sources[0]?.url || '';
+  const imageUrl = sourceUrl ? await fetchOgpImage(sourceUrl) : null;
+  if (imageUrl) console.log(`🖼️ 画像取得: ${imageUrl.slice(0, 60)}`);
+  else console.log('🖼️ 画像なし');
 
   // スレッド作成
   const threadRes = await fetch(`${FIREBASE_DB_URL}/threads.json?auth=${token}`, {
@@ -313,7 +343,8 @@ async function postToFirebase(token, article) {
       country: article.country || '',
       lat: article.lat,
       lng: article.lng,
-      newsPubDate: article.pubDate || ''
+      newsPubDate: article.pubDate || '',
+      imageUrl: imageUrl || ''
     })
   });
   if (!threadRes.ok) throw new Error(`スレッド作成失敗: HTTP ${threadRes.status}`);
@@ -353,6 +384,7 @@ async function postToFirebase(token, article) {
       country: article.country || '',
       lat: article.lat,
       lng: article.lng,
+      imageUrl: imageUrl || '',
       postedAt: now,
       tid,
       isNewsThread: true
