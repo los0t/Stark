@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-VL84M08CLK"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-VL84M08CLK');
+  </script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Ecstasy</title>
@@ -10,14 +21,7 @@
 <meta property="og:url" content="https://los0t.github.io/Stark/">
 <meta property="og:image" content="mark_chuui.png">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
-<!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-VL84M08CLK"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-VL84M08CLK');
-</script>
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -333,6 +337,159 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
 ::-webkit-scrollbar{width:3px}
 ::-webkit-scrollbar-thumb{background:rgba(0,245,255,0.2);border-radius:2px}
 
+/* 全体チャット */
+.chat-bubble{
+  position:absolute;
+  background:rgba(0,10,30,0.82);
+  border:1px solid rgba(0,245,255,0.25);
+  border-radius:12px;
+  padding:6px 10px;
+  max-width:140px;
+  font-size:11px;
+  color:var(--text);
+  pointer-events:none;
+  line-height:1.4;
+  backdrop-filter:blur(4px);
+  z-index:13;
+  animation:floatUp 8s linear forwards;
+}
+.chat-bubble-name{
+  font-size:9px;color:var(--cyan);
+  font-family:'JetBrains Mono',monospace;
+  margin-bottom:2px;font-weight:700;
+}
+@keyframes floatUp{
+  0%{opacity:0;transform:translateY(0)}
+  10%{opacity:1}
+  80%{opacity:1}
+  100%{opacity:0;transform:translateY(-120px)}
+}
+
+/* チャット入力パネル */
+.chat-panel{
+  position:absolute;bottom:0;left:0;right:0;
+  background:rgba(0,3,15,0.96);
+  border-top:1px solid rgba(0,245,255,0.3);
+  padding:10px 14px 20px;
+  z-index:16;
+  transform:translateY(100%);
+  transition:transform .3s ease;
+  backdrop-filter:blur(20px);
+}
+.chat-panel.open{transform:translateY(0)}
+.chat-panel-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;
+}
+.chat-panel-title{
+  font-family:'JetBrains Mono',monospace;font-size:12px;
+  color:var(--cyan);letter-spacing:2px;text-shadow:var(--glow-c);
+}
+.chat-panel-close{
+  background:none;border:1px solid rgba(0,245,255,0.3);
+  color:var(--cyan);border-radius:2px;
+  width:24px;height:24px;cursor:pointer;font-size:12px;
+  display:flex;align-items:center;justify-content:center;
+}
+.chat-input-row{display:flex;gap:8px;align-items:flex-end}
+.chat-input{
+  flex:1;background:rgba(0,245,255,0.04);
+  border:1px solid rgba(0,245,255,0.2);border-radius:2px;
+  color:var(--text);font-family:inherit;font-size:14px;
+  padding:10px 12px;outline:none;resize:none;
+  min-height:40px;max-height:80px;line-height:1.5;
+  -webkit-appearance:none;
+}
+.chat-input:focus{border-color:var(--cyan);box-shadow:var(--glow-c)}
+.chat-input::placeholder{color:var(--muted)}
+.chat-send-btn{
+  width:40px;height:40px;border-radius:2px;
+  background:transparent;color:var(--cyan);
+  border:1px solid var(--cyan);font-size:16px;
+  cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:var(--glow-c);
+}
+
+/* チャットボタン（地球儀右下） */
+.chat-fab{
+  position:absolute;bottom:24px;right:20px;
+  width:44px;height:44px;border-radius:50%;
+  background:transparent;color:var(--purple);
+  border:1px solid var(--purple);font-size:20px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  box-shadow:var(--glow-p);z-index:14;
+}
+
+/* 注目記事ボタン（赤く発光） */
+.bubble-btn-hot{
+  background:rgba(255,30,60,0.85) !important;
+  border-color:#ff1e3c !important;
+  box-shadow:0 0 14px rgba(255,30,60,0.9),0 0 28px rgba(255,30,60,0.4) !important;
+  animation:hotPulse 1.5s ease-in-out infinite;
+}
+@keyframes hotPulse{
+  0%,100%{box-shadow:0 0 14px rgba(255,30,60,0.9),0 0 28px rgba(255,30,60,0.4)}
+  50%{box-shadow:0 0 20px rgba(255,30,60,1),0 0 40px rgba(255,30,60,0.6)}
+}
+
+/* 上部ニュース帯 */
+.news-ticker{
+  position:absolute;top:0;left:0;right:0;
+  height:90px;z-index:15;
+  overflow:hidden;
+}
+.news-ticker-inner{
+  display:flex;height:100%;
+  overflow-x:auto;overflow-y:hidden;
+  scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.news-ticker-inner::-webkit-scrollbar{display:none}
+.news-ticker-item{
+  flex:0 0 220px;height:90px;
+  scroll-snap-align:start;
+  position:relative;cursor:pointer;
+  margin-right:2px;overflow:hidden;
+}
+.news-ticker-item:first-child{margin-left:0}
+.nti-img{
+  width:100%;height:100%;object-fit:cover;display:block;
+  filter:brightness(0.5);
+  transition:filter .2s;
+}
+.nti-img-placeholder{
+  width:100%;height:100%;
+  background:linear-gradient(135deg,rgba(0,20,50,0.95),rgba(20,0,50,0.95));
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;
+}
+.nti-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(0,0,15,0.9) 0%,rgba(0,0,15,0.2) 60%,transparent 100%);
+  padding:6px 8px;
+  display:flex;flex-direction:column;justify-content:flex-end;
+}
+.nti-cat{
+  font-size:8px;color:var(--cyan);
+  font-family:'JetBrains Mono',monospace;
+  letter-spacing:1px;margin-bottom:3px;
+  text-shadow:var(--glow-c);
+}
+.nti-title{
+  font-size:11px;font-weight:700;color:#fff;
+  line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;overflow:hidden;
+}
+.news-ticker-item:active .nti-img{filter:brightness(0.7)}
+/* ニュース帯の下のグラデーション境界 */
+.news-ticker::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+}
+
 /* 記事選択リスト */
 .select-item{
   display:flex;align-items:center;gap:10px;
@@ -427,10 +584,28 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
     <div class="hdr-badge" id="badge-list"></div>
   </div>
   <div id="globe-wrap">
-    <div class="globe-loading" id="globe-loading">🌍 読み込み中...</div>
+    <!-- 上部ニュース帯 -->
+    <div class="news-ticker" id="news-ticker">
+      <div class="news-ticker-inner" id="news-ticker-inner"></div>
+    </div>
+    <div class="globe-loading" id="globe-loading" style="top:90px">🌍 読み込み中...</div>
     <canvas id="globe-canvas"></canvas>
     <!-- 吹き出しはJSで動的生成 -->
   </div>
+  <!-- 全体チャット -->
+  <div class="chat-fab" id="chat-fab">💬</div>
+  <div id="chat-bubbles-wrap" style="position:absolute;inset:90px 0 0 0;pointer-events:none;overflow:hidden;z-index:13"></div>
+  <div class="chat-panel" id="chat-panel">
+    <div class="chat-panel-hdr">
+      <div class="chat-panel-title">GLOBAL CHAT</div>
+      <button class="chat-panel-close" id="chat-panel-close">✕</button>
+    </div>
+    <div class="chat-input-row">
+      <textarea class="chat-input" id="chat-input" placeholder="全世界に発信する…" rows="1" maxlength="100"></textarea>
+      <button class="chat-send-btn" id="chat-send-btn">➤</button>
+    </div>
+  </div>
+
   <!-- 記事選択パネル（座標被り時） -->
   <div class="news-panel-overlay" id="select-overlay"></div>
   <div class="news-panel" id="news-select-panel" style="max-height:70vh">
@@ -702,6 +877,88 @@ function enterApp(){
   document.getElementById('badge-thread').textContent=name;
   go('pg-list');
   initGlobe();
+  initGlobalChat();
+}
+
+// ════ 全体チャット ════
+function initGlobalChat(){
+  const fab=document.getElementById('chat-fab');
+  const panel=document.getElementById('chat-panel');
+  const closeBtn=document.getElementById('chat-panel-close');
+  const sendBtn=document.getElementById('chat-send-btn');
+  const input=document.getElementById('chat-input');
+
+  fab.onclick=()=>panel.classList.add('open');
+  closeBtn.onclick=()=>panel.classList.remove('open');
+
+  input.addEventListener('input',function(){
+    this.style.height='auto';
+    this.style.height=Math.min(this.scrollHeight,80)+'px';
+  });
+  input.addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}
+  });
+  sendBtn.onclick=sendChat;
+
+  // リアルタイムでチャット受信（最新50件）
+  onValue(ref(db,'globalChat'),snap=>{
+    const data=snap.val()||{};
+    const msgs=Object.values(data).sort((a,b)=>(a.ts||0)-(b.ts||0)).slice(-50);
+    // 新着メッセージを吹き出しとして地球儀上に表示
+    msgs.forEach(msg=>{
+      if(!msg._shown){
+        msg._shown=true;
+        showChatBubble(msg);
+      }
+    });
+  });
+}
+
+let _chatShownKeys=new Set();
+
+function showChatBubble(msg){
+  const key=msg.ts+'_'+msg.uid;
+  if(_chatShownKeys.has(key))return;
+  _chatShownKeys.add(key);
+
+  const wrap=document.getElementById('chat-bubbles-wrap');
+  if(!wrap)return;
+  const div=document.createElement('div');
+  div.className='chat-bubble';
+
+  // 左右ランダム配置
+  const side=Math.random()<0.5?'left':'right';
+  const x=side==='left'
+    ? Math.random()*30+2  // 左2〜32%
+    : Math.random()*30+68; // 右68〜98%
+  const y=Math.random()*60+20; // 20〜80%
+  div.style.left=x+'%';
+  div.style.top=y+'%';
+
+  const name=msg.nick||'名無し';
+  div.innerHTML=`<div class="chat-bubble-name">${esc(name)}</div>${esc(msg.text)}`;
+  wrap.appendChild(div);
+
+  // 8秒後に削除
+  setTimeout(()=>div.remove(),8000);
+}
+
+async function sendChat(){
+  const input=document.getElementById('chat-input');
+  const text=input.value.trim();
+  if(!text)return;
+  if(isGuest){alert('チャットにはログインが必要です');return;}
+  input.value='';input.style.height='auto';
+
+  const now=Date.now();
+  await push(ref(db,'globalChat'),{
+    uid:myUid,
+    nick:displayName(),
+    text,
+    ts:now
+  });
+
+  document.getElementById('chat-panel').classList.remove('open');
 }
 
 // ════════════════════════════════════
@@ -751,7 +1008,8 @@ function initGlobe(){
   globeCamera.position.z=2.8;
 
   globeRenderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
-  globeRenderer.setSize(wrap.clientWidth,wrap.clientHeight);
+  globeRenderer.setSize(wrap.clientWidth,wrap.clientHeight-TICKER_H);
+  globeRenderer.domElement.style.marginTop=TICKER_H+'px';
   globeRenderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
 
   // 地球儀
@@ -965,7 +1223,8 @@ function initGlobe(){
   window._updateCountryLabels=function(){
     if(!globeSphere||!globeCamera||!globeRenderer)return;
     const wrap=document.getElementById('globe-wrap');
-    const w=wrap.clientWidth,h=wrap.clientHeight;
+    const TICKER_H=90;
+  const w=wrap.clientWidth,h=wrap.clientHeight-TICKER_H;
     countryLabels.forEach(({div,lat,lng})=>{
       const pos=latLngTo3D(lat,lng,1.02);
       const worldPos=pos.clone().applyEuler(globeSphere.rotation);
@@ -977,7 +1236,7 @@ function initGlobe(){
       const sx=(projected.x+1)/2*w,sy=(-(projected.y)+1)/2*h;
       if(sx<10||sx>w-10||sy<10||sy>h-10){div.style.display='none';return;}
       div.style.display='block';
-      div.style.left=sx+'px';div.style.top=sy+'px';
+      div.style.left=sx+'px';div.style.top=(sy+90)+'px';
     });
   };
 
@@ -1015,9 +1274,10 @@ function initGlobe(){
   // リサイズ
   window.addEventListener('resize',()=>{
     if(!globeRenderer)return;
-    globeCamera.aspect=wrap.clientWidth/wrap.clientHeight;
+    const TH=90;
+    globeCamera.aspect=wrap.clientWidth/(wrap.clientHeight-TH);
     globeCamera.updateProjectionMatrix();
-    globeRenderer.setSize(wrap.clientWidth,wrap.clientHeight);
+    globeRenderer.setSize(wrap.clientWidth,wrap.clientHeight-TH);
     updateBubbles();
   });
 
@@ -1029,8 +1289,9 @@ function initGlobe(){
       .filter(([,t])=>t.isNewsThread&&t.lat!=null&&t.lng!=null)
       .map(([tid,t])=>({tid,...t}))
       .sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))
-      .slice(0,30); // 最大30件
+      .slice(0,30);
     renderBubbles();
+    renderNewsTicker(globeThreads);
   });
 
   animate();
@@ -1089,6 +1350,52 @@ function onMouseMove(e){
 }
 function onMouseUp(){isDragging=false;}
 
+// ニュース帯描画
+function renderNewsTicker(threads){
+  const inner=document.getElementById('news-ticker-inner');
+  if(!inner)return;
+  inner.innerHTML='';
+  const sorted=[...threads].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,15);
+  sorted.forEach(t=>{
+    const title=t.title.replace(/^【|】$/g,'');
+    const item=document.createElement('div');
+    item.className='news-ticker-item';
+
+    if(t.imageUrl){
+      const img=document.createElement('img');
+      img.className='nti-img';
+      img.src=t.imageUrl;
+      img.alt='';
+      img.onerror=()=>{
+        img.replaceWith(makePlaceholder(t.newsCategory));
+      };
+      item.appendChild(img);
+    } else {
+      item.appendChild(makePlaceholder(t.newsCategory));
+    }
+
+    const overlay=document.createElement('div');
+    overlay.className='nti-overlay';
+    const isHotItem=t.totalLikes>0||t.views>5;
+    overlay.innerHTML=`
+      ${isHotItem?'<div style="font-size:8px;color:#ff1e3c;font-family:JetBrains Mono,monospace;letter-spacing:1px;margin-bottom:1px">🔥 HOT</div>':''}
+      <div class="nti-cat">${esc(t.newsCategory||'NEWS')}</div>
+      <div class="nti-title">${esc(title)}</div>`;
+    item.appendChild(overlay);
+    item.addEventListener('click',()=>openNewsPanel(t));
+    item.addEventListener('touchend',e=>{e.preventDefault();openNewsPanel(t);});
+    inner.appendChild(item);
+  });
+}
+
+function makePlaceholder(cat){
+  const icons={'海外事件':'🚨','海外ニュース':'🌍','政治・社会':'🏛️','芸能':'🎭','スキャンダル':'💥','雑学':'💡','その他':'📰'};
+  const div=document.createElement('div');
+  div.className='nti-img-placeholder';
+  div.textContent=icons[cat]||'📰';
+  return div;
+}
+
 // 閲覧数スケール計算
 function getViewScale(views){
   if(!views||views<=0)return 1.0;
@@ -1102,6 +1409,14 @@ function coordKey(lat,lng){
 
 // グループリスト
 let bubbleGroups=[];
+
+// スコア計算（いいね×3 + 閲覧数×1 + コメント数×2）
+function calcScore(t){
+  const likes=t.totalLikes||0;
+  const views=t.views||0;
+  const comments=(t.postCount||1)-1; // 最初のBot投稿を除く
+  return likes*3 + views*1 + comments*2;
+}
 
 // 吹き出し描画（座標グループ化）
 function renderBubbles(){
@@ -1118,10 +1433,33 @@ function renderBubbles(){
     groups[key].threads.push(t);
   });
 
-  // 閲覧数取得
-  get(ref(db,'threads')).then(snap=>{
+  // スコアで上位5件を特定
+  const scored=[...globeThreads].sort((a,b)=>calcScore(b)-calcScore(a));
+  const hotTids=new Set(scored.slice(0,5).map(t=>t.tid));
+
+  // 閲覧数・いいね数をFirebaseから取得してスコア更新
+  get(ref(db,'threads')).then(async snap=>{
     const data=snap.val()||{};
-    globeThreads.forEach(t=>{if(data[t.tid])t.views=data[t.tid].views||0;});
+    // 各スレッドのいいね総数を取得
+    const likePromises=globeThreads.map(async t=>{
+      const postsSnap=await get(ref(db,`posts/${t.tid}`));
+      const posts=postsSnap.val()||{};
+      let totalLikes=0;
+      Object.values(posts).forEach(p=>{totalLikes+=Object.keys(p.likes||{}).length;});
+      t.totalLikes=totalLikes;
+      if(data[t.tid]){t.views=data[t.tid].views||0;t.postCount=data[t.tid].postCount||1;}
+    });
+    await Promise.all(likePromises);
+    // スコア再計算してボタンスタイル更新
+    const rescored=[...globeThreads].sort((a,b)=>calcScore(b)-calcScore(a));
+    const newHotTids=new Set(rescored.slice(0,5).map(t=>t.tid));
+    bubbleGroups.forEach(g=>{
+      const isHot=g.threads.some(t=>newHotTids.has(t.tid));
+      if(isHot)g.btn.classList.add('bubble-btn-hot');
+      else g.btn.classList.remove('bubble-btn-hot');
+    });
+    // ニュース帯も更新
+    renderNewsTicker(globeThreads);
   });
 
   Object.entries(groups).forEach(([key,g])=>{
@@ -1136,14 +1474,15 @@ function renderBubbles(){
     // 丸ボタン
     const btn=document.createElement('div');
     const isMulti=count>1;
+    const isHotNow=threads.some(t=>hotTids.has(t.tid));
     btn.style.cssText=[
       'position:absolute',
       `width:${isMulti?30:22}px`,
       `height:${isMulti?30:22}px`,
       'border-radius:50%',
-      `background:${isMulti?'rgba(155,89,255,0.9)':'rgba(0,245,255,0.15)'}`,
-      `border:2px solid ${isMulti?'#9b59ff':'#00f5ff'}`,
-      `box-shadow:0 0 ${isMulti?14:8}px ${isMulti?'rgba(155,89,255,0.9)':'rgba(0,245,255,0.7)'}`,
+      `background:${isHotNow?'rgba(255,30,60,0.85)':isMulti?'rgba(155,89,255,0.9)':'rgba(0,245,255,0.15)'}`,
+      `border:2px solid ${isHotNow?'#ff1e3c':isMulti?'#9b59ff':'#00f5ff'}`,
+      `box-shadow:0 0 ${isMulti?14:8}px ${isHotNow?'rgba(255,30,60,0.9)':isMulti?'rgba(155,89,255,0.9)':'rgba(0,245,255,0.7)'}`,
       'display:none',
       'align-items:center',
       'justify-content:center',
@@ -1167,6 +1506,7 @@ function renderBubbles(){
     btn.addEventListener('touchend',e=>{e.preventDefault();onTap();});
     wrap.appendChild(btn);
 
+    if(isHotNow)btn.classList.add('bubble-btn-hot');
     bubbleEls.push(dot,btn);
     bubbleGroups.push({lat,lng,threads,dot,btn});
   });
@@ -1177,7 +1517,8 @@ function updateBubbleSizes(){} // 互換性のため
 function updateBubbles(){
   if(!globeSphere||!globeCamera||!globeRenderer)return;
   const wrap=document.getElementById('globe-wrap');
-  const w=wrap.clientWidth,h=wrap.clientHeight;
+  const TH=90;
+  const w=wrap.clientWidth,h=wrap.clientHeight-TH;
 
   bubbleGroups.forEach(g=>{
     const {lat,lng,dot,btn}=g;
@@ -1193,9 +1534,9 @@ function updateBubbles(){
       btn.style.display='none';
     } else {
       dot.style.display='block';
-      dot.style.left=sx+'px';dot.style.top=sy+'px';
+      dot.style.left=sx+'px';dot.style.top=(sy+TH)+'px';
       btn.style.display='flex';
-      btn.style.left=sx+'px';btn.style.top=(sy-18)+'px';
+      btn.style.left=sx+'px';btn.style.top=(sy+TH-18)+'px';
     }
   });
 }
@@ -1307,6 +1648,17 @@ function openNewsPanel(t){
   document.getElementById('panel-meta').textContent=`🤖 生成: ${fmt(t.createdAt)} · ${t.country||''}`;
   document.getElementById('panel-body').textContent='読み込み中...';
   document.getElementById('panel-like-count').textContent='';
+
+  // サムネイル表示
+  const imgWrap=document.getElementById('panel-image-wrap');
+  const imgEl=document.getElementById('panel-image');
+  if(t.imageUrl){
+    imgEl.src=t.imageUrl;
+    imgWrap.style.display='block';
+    imgEl.onerror=()=>{imgWrap.style.display='none';};
+  } else {
+    imgWrap.style.display='none';
+  }
 
   // パネルを先に開いてからミニ地球儀を初期化（サイズ確定後）
   document.getElementById('news-panel').classList.add('open');
