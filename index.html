@@ -771,8 +771,12 @@ function compress(file){return new Promise((res,rej)=>{const r=new FileReader();
 
 // ════ Auth状態 ════
 onAuthStateChanged(auth,async user=>{
+  // ゲストまたは匿名ユーザーはスキップ
   if(isGuest)return;
-  if(!user){myUid=null;myAccountId=null;myNick=null;go('pg-start');return;}
+  if(!user||user.isAnonymous){
+    if(!isGuest){myUid=null;myAccountId=null;myNick=null;go('pg-start');}
+    return;
+  }
   myUid=user.uid;
   if(isAdmin()){
     const snap=await get(ref(db,'admin/pin'));
@@ -802,10 +806,7 @@ document.getElementById('btn-guest').onclick=async()=>{
     myUid='guest_'+Math.random().toString(36).slice(2);
   }
   myAccountId=null;myNick=null;
-  document.getElementById('badge-list').textContent='👁 GUEST';
-  document.getElementById('badge-thread').textContent='👁 GUEST';
-  go('pg-list');
-  initGlobe();
+  enterApp();
 };
 
 // ════ ログイン ════
@@ -872,7 +873,7 @@ async function doProfileSet(){
 
 // ════ アプリ開始 ════
 function enterApp(){
-  const name=displayName();
+  const name=isGuest?'👁 GUEST':displayName();
   document.getElementById('badge-list').textContent=name;
   document.getElementById('badge-thread').textContent=name;
   go('pg-list');
