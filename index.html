@@ -588,7 +588,7 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
     <div class="news-ticker" id="news-ticker">
       <div class="news-ticker-inner" id="news-ticker-inner"></div>
     </div>
-    <div class="globe-loading" id="globe-loading" style="top:90px">🌍 読み込み中...</div>
+    <!-- loading removed -->
     <canvas id="globe-canvas"></canvas>
     <!-- 吹き出しはJSで動的生成 -->
   </div>
@@ -1246,7 +1246,7 @@ function initGlobe(){
     });
   };
 
-  document.getElementById('globe-loading').style.display='none';
+  // globe-loading removed
 
   // 大気
   const atmGeo=new THREE.SphereGeometry(1.02,64,64);
