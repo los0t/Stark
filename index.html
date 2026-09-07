@@ -787,7 +787,7 @@ function renderNewsTicker(threads){
   if(!inner)return;
   inner.innerHTML='';
   const icons={'海外事件':'🚨','海外ニュース':'🌍','政治・社会':'🏛️','芸能':'🎭','スキャンダル':'💥','雑学':'💡','その他':'📰'};
-  [...threads].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,15).forEach(t=>{
+  [...threads].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,30).forEach(t=>{
     const title=t.title.replace(/^【|】$/g,'');
     const item=document.createElement('div');item.className='news-ticker-item';
     if(t.imageUrl){
