@@ -65,9 +65,10 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
 #globe-wrap{flex:1;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 60%,#000428 0%,#00000f 70%);}
 #globe-wrap::before{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;background-image:linear-gradient(rgba(0,245,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.03) 1px,transparent 1px);background-size:40px 40px;}
 #globe-canvas{
-  display:block;touch-action:none;position:absolute;z-index:2;
-  width:min(70vw,60vh);height:min(70vw,60vh);
-  left:50%;top:50%;transform:translate(-50%,-50%);
+  display:block;touch-action:none;
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  z-index:2;
 }
 .globe-loading{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;color:var(--cyan);font-size:13px;font-family:'JetBrains Mono',monospace;letter-spacing:2px;text-shadow:var(--glow-c);}
 .bubble{position:absolute;background:rgba(0,10,30,0.88);border:1px solid var(--cyan);border-radius:2px;padding:6px 10px;max-width:150px;font-size:10px;font-weight:700;color:var(--cyan);cursor:pointer;box-shadow:var(--glow-c),inset 0 0 10px rgba(0,245,255,0.05);pointer-events:auto;transform:translate(-50%,-100%);transform-origin:bottom center;line-height:1.4;z-index:10;font-family:'JetBrains Mono',monospace;backdrop-filter:blur(4px);transition:box-shadow .2s;}
@@ -596,9 +597,9 @@ let isDragging=false,prevTouch={x:0,y:0};
 let globeThreads=[];
 let bubbleGroups=[];
 let bubbleEls=[];
-let globeZoom=2.8;
-const ZOOM_MIN=1.5,ZOOM_MAX=5.0;
-let pinchStartDist=0,pinchStartZoom=2.8;
+let globeZoom=4.5;
+const ZOOM_MIN=2.0,ZOOM_MAX=7.0;
+let pinchStartDist=0,pinchStartZoom=4.5;
 let autoRotate=true;
 
 function latLngTo3D(lat,lng,r){
@@ -610,10 +611,8 @@ function latLngTo3D(lat,lng,r){
 function initGlobe(){
   const wrap=document.getElementById('globe-wrap');
   const canvas=document.getElementById('globe-canvas');
-  // canvasの実サイズを取得（CSSサイズ確定後）
-  const canvasEl=document.getElementById('globe-canvas');
-  const w=canvasEl.clientWidth||Math.min(window.innerWidth*0.7,window.innerHeight*0.6);
-  const h=canvasEl.clientHeight||w;
+  const w=wrap.clientWidth;
+  const h=wrap.clientHeight;
 
   // Scene
   globeScene=new THREE.Scene();
@@ -626,14 +625,12 @@ function initGlobe(){
   globeScene.add(nightMesh);
   window._nightMesh=nightMesh;
 
-  globeCamera=new THREE.PerspectiveCamera(45,w/h,0.1,1000);
-  globeCamera.position.z=2.8;
+  globeCamera=new THREE.PerspectiveCamera(30,w/h,0.1,1000);
+  globeCamera.position.z=4.5; // 引きにして地球儀を小さく表示
 
   globeRenderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
   globeRenderer.setSize(w,h);
   globeRenderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
-  // canvasのdisplayサイズをCSSに合わせる
-  canvas.style.width='';canvas.style.height='';
 
   // ワイヤーフレーム
   const geo=new THREE.SphereGeometry(1,64,64);
@@ -735,10 +732,8 @@ function initGlobe(){
   window.addEventListener('resize',()=>{
     if(!globeRenderer)return;
     const nw=wrap.clientWidth,nh=wrap.clientHeight;
-    const rcEl=document.getElementById('globe-canvas');
-    const rw=rcEl.clientWidth||nw,rh=rcEl.clientHeight||nh;
-    globeCamera.aspect=rw/rh;globeCamera.updateProjectionMatrix();
-    globeRenderer.setSize(rw,rh);updateBubbles();
+    globeCamera.aspect=nw/nh;globeCamera.updateProjectionMatrix();
+    globeRenderer.setSize(nw,nh);updateBubbles();
   });
 
   // loading非表示
@@ -922,12 +917,7 @@ function renderBubbles(){
 function updateBubbles(){
   if(!globeSphere||!globeCamera||!globeRenderer)return;
   const wrap=document.getElementById('globe-wrap');
-  const canvasEl2=document.getElementById('globe-canvas');
-  const cRect=canvasEl2.getBoundingClientRect();
-  const wrapRect=wrap.getBoundingClientRect();
-  const offsetX=cRect.left-wrapRect.left;
-  const offsetY=cRect.top-wrapRect.top;
-  const w=cRect.width,h=cRect.height;
+  const w=wrap.clientWidth,h=wrap.clientHeight;
   bubbleGroups.forEach(g=>{
     const {lat,lng,dot,btn}=g;
     const pos=latLngTo3D(lat,lng,1);
@@ -938,8 +928,8 @@ function updateBubbles(){
     if(!isFront||projected.z>1||sx<0||sx>w||sy<0||sy>h){
       dot.style.display='none';btn.style.display='none';
     } else {
-      dot.style.display='block';dot.style.left=(sx+offsetX)+'px';dot.style.top=(sy+offsetY)+'px';
-      btn.style.display='flex';btn.style.left=(sx+offsetX)+'px';btn.style.top=(sy+offsetY-18)+'px';
+      dot.style.display='block';dot.style.left=sx+'px';dot.style.top=sy+'px';
+      btn.style.display='flex';btn.style.left=sx+'px';btn.style.top=(sy-18)+'px';
     }
   });
 }
