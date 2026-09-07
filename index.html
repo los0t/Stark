@@ -64,7 +64,11 @@ body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;backgroun
 .hdr-thread-title{flex:1;font-size:13px;font-weight:700;color:var(--text);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-family:'JetBrains Mono',monospace}
 #globe-wrap{flex:1;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 60%,#000428 0%,#00000f 70%);}
 #globe-wrap::before{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;background-image:linear-gradient(rgba(0,245,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.03) 1px,transparent 1px);background-size:40px 40px;}
-#globe-canvas{width:100%;height:100%;display:block;touch-action:none;position:relative;z-index:2}
+#globe-canvas{
+  display:block;touch-action:none;position:absolute;z-index:2;
+  width:min(70vw,60vh);height:min(70vw,60vh);
+  left:50%;top:50%;transform:translate(-50%,-50%);
+}
 .globe-loading{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;color:var(--cyan);font-size:13px;font-family:'JetBrains Mono',monospace;letter-spacing:2px;text-shadow:var(--glow-c);}
 .bubble{position:absolute;background:rgba(0,10,30,0.88);border:1px solid var(--cyan);border-radius:2px;padding:6px 10px;max-width:150px;font-size:10px;font-weight:700;color:var(--cyan);cursor:pointer;box-shadow:var(--glow-c),inset 0 0 10px rgba(0,245,255,0.05);pointer-events:auto;transform:translate(-50%,-100%);transform-origin:bottom center;line-height:1.4;z-index:10;font-family:'JetBrains Mono',monospace;backdrop-filter:blur(4px);transition:box-shadow .2s;}
 .bubble::after{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);border:3px solid transparent;border-top-color:var(--cyan);filter:drop-shadow(0 0 3px var(--cyan));}
@@ -606,7 +610,10 @@ function latLngTo3D(lat,lng,r){
 function initGlobe(){
   const wrap=document.getElementById('globe-wrap');
   const canvas=document.getElementById('globe-canvas');
-  const w=wrap.clientWidth,h=wrap.clientHeight;
+  // canvasの実サイズを取得（CSSサイズ確定後）
+  const canvasEl=document.getElementById('globe-canvas');
+  const w=canvasEl.clientWidth||Math.min(window.innerWidth*0.7,window.innerHeight*0.6);
+  const h=canvasEl.clientHeight||w;
 
   // Scene
   globeScene=new THREE.Scene();
@@ -625,6 +632,8 @@ function initGlobe(){
   globeRenderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
   globeRenderer.setSize(w,h);
   globeRenderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  // canvasのdisplayサイズをCSSに合わせる
+  canvas.style.width='';canvas.style.height='';
 
   // ワイヤーフレーム
   const geo=new THREE.SphereGeometry(1,64,64);
@@ -726,8 +735,10 @@ function initGlobe(){
   window.addEventListener('resize',()=>{
     if(!globeRenderer)return;
     const nw=wrap.clientWidth,nh=wrap.clientHeight;
-    globeCamera.aspect=nw/nh;globeCamera.updateProjectionMatrix();
-    globeRenderer.setSize(nw,nh);updateBubbles();
+    const rcEl=document.getElementById('globe-canvas');
+    const rw=rcEl.clientWidth||nw,rh=rcEl.clientHeight||nh;
+    globeCamera.aspect=rw/rh;globeCamera.updateProjectionMatrix();
+    globeRenderer.setSize(rw,rh);updateBubbles();
   });
 
   // loading非表示
@@ -793,7 +804,11 @@ function renderNewsTicker(threads){
     ov.innerHTML=`<div class="nti-cat">${esc(t.newsCategory||'NEWS')}</div><div class="nti-title">${esc(title)}</div>`;
     item.appendChild(ov);
     item.addEventListener('click',()=>openNewsPanel(t));
-    item.addEventListener('touchend',e=>{e.preventDefault();openNewsPanel(t);});
+    // スクロール中はタップ無効
+    let _tickerTouchStartX=0,_tickerMoved=false;
+    item.addEventListener('touchstart',e=>{_tickerTouchStartX=e.touches[0].clientX;_tickerMoved=false;},{passive:true});
+    item.addEventListener('touchmove',e=>{if(Math.abs(e.touches[0].clientX-_tickerTouchStartX)>8)_tickerMoved=true;},{passive:true});
+    item.addEventListener('touchend',e=>{if(!_tickerMoved){e.preventDefault();openNewsPanel(t);}});
     inner.appendChild(item);
   });
 }
@@ -907,7 +922,12 @@ function renderBubbles(){
 function updateBubbles(){
   if(!globeSphere||!globeCamera||!globeRenderer)return;
   const wrap=document.getElementById('globe-wrap');
-  const w=wrap.clientWidth,h=wrap.clientHeight;
+  const canvasEl2=document.getElementById('globe-canvas');
+  const cRect=canvasEl2.getBoundingClientRect();
+  const wrapRect=wrap.getBoundingClientRect();
+  const offsetX=cRect.left-wrapRect.left;
+  const offsetY=cRect.top-wrapRect.top;
+  const w=cRect.width,h=cRect.height;
   bubbleGroups.forEach(g=>{
     const {lat,lng,dot,btn}=g;
     const pos=latLngTo3D(lat,lng,1);
@@ -918,8 +938,8 @@ function updateBubbles(){
     if(!isFront||projected.z>1||sx<0||sx>w||sy<0||sy>h){
       dot.style.display='none';btn.style.display='none';
     } else {
-      dot.style.display='block';dot.style.left=sx+'px';dot.style.top=sy+'px';
-      btn.style.display='flex';btn.style.left=sx+'px';btn.style.top=(sy-18)+'px';
+      dot.style.display='block';dot.style.left=(sx+offsetX)+'px';dot.style.top=(sy+offsetY)+'px';
+      btn.style.display='flex';btn.style.left=(sx+offsetX)+'px';btn.style.top=(sy+offsetY-18)+'px';
     }
   });
 }
