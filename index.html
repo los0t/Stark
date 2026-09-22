@@ -254,7 +254,7 @@ html,body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;back
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getDatabase, ref, push, get, set, update, onValue, off } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const fbApp = initializeApp({
@@ -286,7 +286,9 @@ async function toBase64(file){
   return new Promise((res,rej)=>{const r=new FileReader();r.onerror=rej;r.onload=e=>res(e.target.result);r.readAsDataURL(file);});
 }
 
-// Auth
+// Auth - リダイレクト結果を先に処理
+getRedirectResult(auth).catch(e=>console.error('redirect error:',e));
+
 onAuthStateChanged(auth,async user=>{
   if(!user){go('pg-login');return;}
   myUid=user.uid;myName=user.displayName||user.email||'USER';
@@ -297,7 +299,7 @@ onAuthStateChanged(auth,async user=>{
 });
 document.getElementById('btn-google').onclick=async()=>{
   document.getElementById('login-err').textContent='';
-  try{await signInWithPopup(auth,provider);}
+  try{await signInWithRedirect(auth,provider);}
   catch(e){document.getElementById('login-err').textContent='ログインに失敗しました';console.error(e);}
 };
 
