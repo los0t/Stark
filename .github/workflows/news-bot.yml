@@ -1,11 +1,29 @@
-name: KAT-TON AI
+name: KAT-TON AI Quiz Generator
 
 on:
+  schedule:
+    - cron: '*/5 * * * *'  # 5分ごとにpendingジョブを確認
   workflow_dispatch:
 
 jobs:
-  placeholder:
+  process-jobs:
     runs-on: ubuntu-latest
     steps:
-      - name: Info
-        run: echo "KAT-TON AI uses Claude API directly from the browser. No server-side processing needed."
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install node-fetch
+
+      - name: Run quiz generator
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          FIREBASE_DB_URL: ${{ secrets.FIREBASE_DB_URL }}
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          NEWSBOT_EMAIL: ${{ secrets.NEWSBOT_EMAIL }}
+          NEWSBOT_PASSWORD: ${{ secrets.NEWSBOT_PASSWORD }}
+        run: node scripts/news-bot.js
