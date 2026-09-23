@@ -440,25 +440,43 @@ function renderFiles(){
   });
 }
 
-// ジョブキューイング
+// Gemini API直接呼び出し
+const GEMINI_API_KEY = 'AIzaSyAQ.Ab8RN6IF4pESBRg0182ebjHIRXOvoNmWVbm620MQqjAOJUzTRA';
+const GEMINI_MODEL = 'gemini-2.5-flash';
+
+async function geminiGenerate(parts) {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+    { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ contents:[{parts}], generationConfig:{temperature:0.7,maxOutputTokens:8000} }) }
+  );
+  const d = await res.json();
+  if(!res.ok) throw new Error(`Gemini失敗 ${res.status}: ${d.error?.message||''}`);
+  const text = d.candidates?.[0]?.content?.parts?.[0]?.text||'';
+  const first=text.indexOf('{'),last=text.lastIndexOf('}');
+  if(first===-1) throw new Error('JSONが見つかりません');
+  return JSON.parse(text.slice(first,last+1));
+}
+
 document.getElementById('btn-queue').onclick=queueJob;
 async function queueJob(){
   const err=document.getElementById('upload-err');err.textContent='';
   if(!uploadedFiles.length){err.textContent='資料をアップロードしてください';return;}
   const title=document.getElementById('quiz-title').value.trim()||'無題クイズ';
   const qCount=Math.min(20,Math.max(1,parseInt(document.getElementById('q-count').value)||10));
+
   document.getElementById('upload-body').style.display='none';
   document.getElementById('upload-status').style.display='flex';
   document.getElementById('upload-status-text').textContent='ファイルを解析中...';
+
   try{
     // SHA-256ハッシュ生成
     const fileInfos=[];
     for(const file of uploadedFiles){
       const hash=await sha256hex(file);
       const b64=await toBase64(file);
-      fileInfos.push({hash,name:file.name,type:file.type||'application/octet-stream',size:file.size,data:b64});
+      fileInfos.push({hash,name:file.name,type:file.type||'application/octet-stream',size:file.size,data:b64.split(',')[1]});
     }
-    // 複数ファイルを結合したmaterialHash
     const combined=fileInfos.map(f=>f.hash).join('_');
     const combinedBuf=new TextEncoder().encode(combined);
     const combinedHashBuf=await crypto.subtle.digest('SHA-256',combinedBuf);
@@ -466,43 +484,73 @@ async function queueJob(){
 
     document.getElementById('upload-status-text').textContent='重複チェック中...';
 
-    // 既存解析確認
-    const existingMat=await get(ref(db,`materials/${currentTeam.id}/${materialHash}`));
-    const hasAnalysis=existingMat.exists()&&existingMat.val().analyzed===true;
-
     // 同じ資料・同じ問題数の既存クイズ確認
     const idxKey=`${materialHash}_${qCount}`;
     const existingIdx=await get(ref(db,`quizSetIndex/${currentTeam.id}/${idxKey}`));
     if(existingIdx.exists()){
       const qsId=existingIdx.val();
       const qsSnap=await get(ref(db,`quizSets/${currentTeam.id}/${qsId}`));
-      if(qsSnap.exists()&&qsSnap.val().status==='completed'&&(qsSnap.val().questions?.length||0)>0){
+      if(qsSnap.exists()&&(qsSnap.val().questions?.length||0)>0){
         document.getElementById('upload-body').style.display='';
         document.getElementById('upload-status').style.display='none';
         uploadedFiles=[];renderFiles();
-        alert('同じ資料の問題セットが既にあります。既存の問題を使用します。');
         startQuiz({id:qsId,teamId:currentTeam.id,...qsSnap.val()});
         return;
       }
     }
 
-    // ジョブをFirebaseに書く（news-bot.jsが拾う）
-    const jobData={
-      teamId:currentTeam.id,materialHash,title,qCount,
-      requestedBy:myUid,requestedAt:Date.now(),status:'pending',
-      hasExistingAnalysis:hasAnalysis
-    };
-    if(!hasAnalysis){
-      jobData.files=fileInfos.map(f=>({hash:f.hash,name:f.name,type:f.type,size:f.size,data:f.data}));
+    // 解析済みデータ確認
+    let analysis=null;
+    const existingMat=await get(ref(db,`materials/${currentTeam.id}/${materialHash}`));
+    if(existingMat.exists()&&existingMat.val().analyzed){
+      console.log('♻️ 既存解析データ再利用');
+      analysis=existingMat.val().analysis;
+    } else {
+      // 初回解析（Gemini）
+      document.getElementById('upload-status-text').textContent='AIが資料を読み込み中...';
+      const parts=[];
+      for(const f of fileInfos){
+        if(f.type.startsWith('image/')){
+          parts.push({inline_data:{mime_type:f.type,data:f.data}});
+        } else if(f.type==='application/pdf'){
+          parts.push({inline_data:{mime_type:'application/pdf',data:f.data}});
+        } else {
+          const text=atob(f.data);
+          parts.push({text:`ファイル名: ${f.name}
+
+${text}`});
+        }
+      }
+      parts.push({text:`以下の資料を解析してJSONのみで回答してください（前置き不要）:
+{"summary":"概要","topics":[],"keywords":[],"importantPoints":[],"facts":[],"definitions":[]}`});
+      analysis=await geminiGenerate(parts);
+      // 解析結果保存
+      await set(ref(db,`materials/${currentTeam.id}/${materialHash}`),{
+        analyzed:true,analysis,fileNames:fileInfos.map(f=>f.name),analyzedAt:Date.now()
+      });
     }
 
-    const jobRef=await push(ref(db,'processingJobs'),jobData);
-    const jobId=jobRef.key;
+    // 問題生成
+    document.getElementById('upload-status-text').textContent=`AIが${qCount}問を生成中...`;
+    const analysisText=JSON.stringify(analysis,null,2);
+    const qParts=[{text:`以下の資料解析データから${qCount}問の四択クイズを作成してください。
 
-    // 問題セットをpending状態で登録
+資料:
+${analysisText}
+
+JSONのみで回答（前置き不要）:
+{"questions":[{"q":"問題文","choices":["A. 選択肢1","B. 選択肢2","C. 選択肢3","D. 選択肢4"],"answer":0,"explanation":"解説"}]}
+
+- answerは0〜3
+- 選択肢はA.B.C.D.で始める
+- 問題数は${qCount}問`}];
+    const result=await geminiGenerate(qParts);
+    if(!Array.isArray(result.questions)||!result.questions.length) throw new Error('問題が生成されませんでした');
+
+    // Firebase保存
     const qsRef=await push(ref(db,`quizSets/${currentTeam.id}`),{
-      title,materialHash,qCount,status:'pending',jobId,
-      createdAt:Date.now(),createdBy:myUid,questions:[]
+      title,materialHash,qCount,status:'completed',
+      questions:result.questions,createdAt:Date.now(),createdBy:myUid
     });
     const qsId=qsRef.key;
     await set(ref(db,`quizSetIndex/${currentTeam.id}/${idxKey}`),qsId);
@@ -510,12 +558,13 @@ async function queueJob(){
     document.getElementById('upload-body').style.display='';
     document.getElementById('upload-status').style.display='none';
     uploadedFiles=[];renderFiles();
-    watchProcessing(qsId,title);
+    startQuiz({id:qsId,teamId:currentTeam.id,title,questions:result.questions});
+
   }catch(e){
     console.error(e);
     document.getElementById('upload-body').style.display='';
     document.getElementById('upload-status').style.display='none';
-    err.textContent='エラーが発生しました: '+e.message;
+    err.textContent='エラー: '+e.message;
   }
 }
 
