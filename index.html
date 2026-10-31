@@ -29,7 +29,7 @@ ul{list-style:none;padding:0;margin:0;display:grid;gap:6px}
 li{display:flex;justify-content:space-between;gap:8px;background:var(--panel);border:2px solid #3a447f;border-radius:10px;padding:8px 12px;min-height:44px}
 li.ok{border-color:var(--gr);background:#12382f}
 li em{font-style:normal;color:var(--gr);font-weight:700}
-li.hint em{color:#6a73ad;font-weight:400}
+li.hint em{color:#c9d0ff;font-weight:700}
 li.tap{cursor:pointer}
 .big{font-size:22px;font-weight:800;text-align:center;margin:10px 0}
 .bad{color:var(--rd)}
@@ -59,9 +59,6 @@ const Q=RAW.map(([t,s])=>[t,s.split(';').map(x=>{const[p,a]=x.split('|');return{
 const TIME=60000, KEY='hb_used';
 const $=s=>document.querySelector(s), app=$('#app');
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const norm=s=>s.normalize('NFKC').toLowerCase().replace(/[\s・、。]/g,'').replace(/[ァ-ン]/g,c=>String.fromCharCode(c.charCodeAt(0)-96)).replace(/条約$/,'');
-const fill=(p,a)=>p.replace(/（[^）]*）/,a);
-const match=(it,x)=>{const t=norm(x);return t&&it.a.split('/').some(a=>norm(a)===t||(it.p.includes('（')&&norm(fill(it.p,a))===t))};
 const getUsed=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return[]}};
 const setUsed=u=>{try{localStorage.setItem(KEY,JSON.stringify(u))}catch(e){}};
 let role,peer,conn,S,St,recv=0;
@@ -76,7 +73,6 @@ function host(){
   peer.on('connection',c=>{
     c.on('data',m=>{
       if(m.t==='join'&&!S.pl.some(p=>p.c===c)){S.pl.push({c,n:String(m.n||'名無し').slice(0,12)});bc()}
-      if(m.t==='ans'){const p=S.pl.find(p=>p.c===c);if(S.ph==='play'&&p&&p===cur())judge(m.x,p)}
     });
     c.on('close',()=>{if(S.ph==='lobby'||S.ph==='res'){S.pl=S.pl.filter(p=>p.c!==c);bc()}});
   });
@@ -87,7 +83,7 @@ function pub(p,all){
   return{ph:S.ph,code:S.code,title:S.title,c:S.c,wrong:S.wrong,res:S.res,msg:S.msg,
     rem:S.ph==='play'?S.end-Date.now():0,
     pl:S.pl.map(x=>({n:x.n})),me:S.pl.indexOf(p),cur:S.pl.indexOf(cur()),
-    it:S.it.map(i=>({p:i.p,d:i.d,by:i.by,a:(all||i.d||S.ph==='res')?i.a.split('/')[0]:null}))}
+    it:S.it.map(i=>({p:i.p,d:i.d,by:i.by,a:(all&&!i.d)?i.a.replace(/\//g,'／'):(i.d||S.ph==='res')?i.a.split('/')[0]:null}))}
 }
 function bc(){S.pl.forEach(p=>{if(p.c.open)p.c.send(pub(p))});draw()}
 function nextQ(){
@@ -99,15 +95,11 @@ function nextQ(){
 }
 function start(){S.ph='play';S.end=Date.now()+TIME;S.wrong=null;bc()}
 function end(r){S.ph='res';S.res=r;bc()}
-function judge(x,p){
-  const i=S.it.findIndex(t=>!t.d&&match(t,x));
-  if(i<0){S.wrong={n:p.n,x};bc()}else mark(i,p.n);
-}
 function mark(i,n){
   S.it[i].d=1;S.it[i].by=n;S.c++;S.wrong=null;
   S.it.every(t=>t.d)?end('clear'):bc();
 }
-function ovr(i){if(S.ph==='play'&&!S.it[i].d)mark(i,'出題者判定')}
+function ovr(i){if(S.ph==='play'&&!S.it[i].d)mark(i,(cur()||{}).n||'')}
 function resetUsed(){if(confirm('出題済みの履歴をリセットして、全問を再び出題対象に戻しますか？')){setUsed([]);S.msg='リセットしました。';draw()}}
 
 /* ---------- 参加者 ---------- */
@@ -124,7 +116,6 @@ function goJoin(){
   });
   peer.on('error',()=>{alert('部屋に接続できません。部屋コードを確認してください');location.reload()});
 }
-function send(){const e=$('#ans');if(e&&e.value.trim()){conn.send({t:'ans',x:e.value});e.value='';e.focus()}}
 
 /* ---------- 表示 ---------- */
 function draw(){
@@ -145,17 +136,15 @@ function draw(){
   if(st.ph!=='lobby'){
     o+=`<div class="fuse"><i id="fz"></i></div><div id="tm">60</div><h2>${esc(st.title)}（${st.it.length}個）</h2><ul>`+
     st.it.map((t,i)=>`<li class="${t.d?'ok':h?'hint':''} ${h&&play&&!t.d?'tap':''}" ${h&&play&&!t.d?`onclick="ovr(${i})"`:''}><span>${esc(t.p)||'?'}</span><em>${t.a!=null?esc(t.a):''}${t.d?` <small>${esc(t.by)}</small>`:''}</em></li>`).join('')+'</ul>';
-    if(st.wrong)o+=`<p class="bad">✗ ${esc(st.wrong.n)}：${esc(st.wrong.x)}</p>`;
     if(st.ph==='res')o+=`<div class="big">${st.res==='clear'?'🎉 爆弾解除！ 全問正解':'💥 BOOM！ '+st.c+'個正解'}</div>`;
-    if(h&&play)o+='<small>誤判定は、答えを灰色表示の項目タップで正解にできます</small>';
+    if(h&&play)o+='<small>参加者が通話で答えて合っていたら、その項目をタップして○にします</small>';
   }
   if(h){
     const u=getUsed().length;
     o+=`<div class="row">${st.ph==='ready'?'<button onclick="start()">スタート</button>':st.ph==='play'?'<button class="sub" onclick="end(\'boom\')">強制終了</button>':'<button onclick="nextQ()">次の問題を出す</button>'}<button class="sub" onclick="resetUsed()">出題履歴をリセット</button></div><small>出題済み ${u} / ${Q.length}問</small>`;
   }else{
     const my=st.me,mine=my>=0&&my<5,turn=play&&st.cur===my;
-    o+=`<p class="big">${st.ph==='lobby'?'出題者の開始待ち':st.ph==='ready'?'問題を確認して待機…':play?(turn?'あなたの番！':esc((st.pl[st.cur]||{}).n)+'さんの番'):''}</p><small>${mine?`あなたは${my+1}枠目`:'観戦中'}（参加${st.pl.length}人）</small>`;
-    if(turn)o+=`<div class="row"><input id="ans" autocomplete="off" placeholder="答えを入力" onkeydown="if(event.key==='Enter')send()" style="flex:1"><button onclick="send()">答える</button></div>`;
+    o+=`<p class="big">${st.ph==='lobby'?'出題者の開始待ち':st.ph==='ready'?'問題を確認して待機…':play?(turn?'あなたの番！声で答えよう':esc((st.pl[st.cur]||{}).n)+'さんの番'):''}</p><small>${mine?`あなたは${my+1}枠目`:'観戦中'}（参加${st.pl.length}人）</small>`;
   }
   app.innerHTML=o;
   const e=$('#ans');if(e)e.focus();
