@@ -1,664 +1,175 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>KAT-TON AI</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ハイパーボンバー</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;background:#00000f;color:#e0e0ff}
-:root{--bg:#00000f;--card:rgba(0,20,50,0.92);--cyan:#00f5ff;--purple:#9b59ff;--green:#00ff88;--red:#ff2244;--text:#e0e0ff;--muted:#6080a0;--glow-c:0 0 8px #00f5ff,0 0 20px rgba(0,245,255,0.3);--glow-p:0 0 8px #9b59ff,0 0 20px rgba(155,89,255,0.3);--glow-g:0 0 8px #00ff88,0 0 20px rgba(0,255,136,0.3);}
-.pg{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg);visibility:hidden;pointer-events:none;overflow:hidden}
-.pg.on{visibility:visible;pointer-events:auto}
-#pg-login{align-items:center;justify-content:center}
-#pg-login::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,245,255,0.015) 2px,rgba(0,245,255,0.015) 4px);pointer-events:none;z-index:0}
-.auth-box{position:relative;z-index:1;background:var(--card);border:1px solid var(--cyan);border-radius:4px;padding:40px 28px;width:min(340px,92vw);display:flex;flex-direction:column;gap:16px;align-items:center;box-shadow:var(--glow-c)}
-.auth-box::before{content:'';position:absolute;top:-1px;left:20px;right:20px;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent)}
-.logo{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;letter-spacing:4px;color:var(--cyan);text-shadow:var(--glow-c)}
-.sub{font-size:11px;color:var(--muted);text-align:center;font-family:'JetBrains Mono',monospace;line-height:1.8}
-.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:transparent;color:var(--cyan);border:1px solid var(--cyan);border-radius:2px;padding:14px;font-size:13px;font-weight:700;cursor:pointer;font-family:'JetBrains Mono',monospace;letter-spacing:2px;box-shadow:var(--glow-c);transition:background .2s}
-.btn:hover{background:rgba(0,245,255,0.08)}
-.btn:active{transform:scale(.98)}
-.btn.purple{color:var(--purple);border-color:var(--purple);box-shadow:var(--glow-p)}
-.btn.purple:hover{background:rgba(155,89,255,0.08)}
-.btn.green{color:var(--green);border-color:var(--green);box-shadow:var(--glow-g)}
-.btn.red{color:var(--red);border-color:var(--red)}
-.btn.sm{padding:8px 14px;font-size:11px;width:auto;letter-spacing:1px}
-.err{font-size:11px;color:var(--red);text-align:center;font-family:'JetBrains Mono',monospace;min-height:16px}
-.hdr{height:52px;flex-shrink:0;background:rgba(0,5,20,0.95);border-bottom:1px solid rgba(0,245,255,0.2);display:flex;align-items:center;padding:0 14px;gap:10px;backdrop-filter:blur(10px)}
-.hdr-title{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--cyan);text-shadow:var(--glow-c);letter-spacing:3px}
-.hdr-badge{margin-left:auto;color:var(--purple);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:3px 10px;border:1px solid var(--purple);border-radius:2px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
-.hdr-back{background:transparent;border:1px solid rgba(0,245,255,0.3);color:var(--cyan);border-radius:2px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:'JetBrains Mono',monospace;flex-shrink:0}
-.wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px}
-.sec{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;margin:18px 0 8px}
-.sec:first-child{margin-top:0}
-.card{background:rgba(0,10,30,0.9);border:1px solid rgba(0,245,255,0.15);border-radius:4px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:border-color .2s}
-.card:active{border-color:var(--cyan)}
-.card-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
-.card-meta{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.tag{font-size:9px;padding:2px 7px;border-radius:2px;font-family:'JetBrains Mono',monospace;font-weight:700;border:1px solid}
-.tag-cyan{border-color:var(--cyan);color:var(--cyan)}
-.tag-green{border-color:var(--green);color:var(--green)}
-.tag-orange{border-color:#f97316;color:#f97316}
-.tag-red{border-color:var(--red);color:var(--red)}
-.empty{text-align:center;color:var(--muted);font-size:12px;padding:36px 20px;font-family:'JetBrains Mono',monospace;line-height:2.2}
-.field-label{font-size:11px;color:var(--cyan);font-weight:700;letter-spacing:2px;font-family:'JetBrains Mono',monospace;margin-bottom:6px}
-.field{width:100%;background:rgba(0,245,255,0.04);border:1px solid rgba(0,245,255,0.3);border-radius:2px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:14px;padding:12px 14px;outline:none;transition:border-color .2s}
-.field:focus{border-color:var(--cyan);box-shadow:var(--glow-c)}
-.field::placeholder{color:var(--muted)}
-.team-btn{display:flex;align-items:center;justify-content:space-between;width:100%;background:rgba(0,10,30,0.9);border:1px solid rgba(155,89,255,0.25);border-radius:4px;padding:16px;cursor:pointer;transition:border-color .2s;margin-bottom:8px}
-.team-btn:hover,.team-btn:active{border-color:var(--purple)}
-.team-name{font-size:14px;font-weight:700;color:var(--text)}
-.team-meta{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:3px}
-.upload-zone{border:2px dashed rgba(0,245,255,0.3);border-radius:4px;padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(0,245,255,0.02);margin-bottom:14px}
-.upload-zone.drag,.upload-zone:hover{border-color:var(--cyan);background:rgba(0,245,255,0.06)}
-.upload-zone-icon{font-size:36px;margin-bottom:10px}
-.upload-zone-text{font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;line-height:1.8}
-.file-item{background:rgba(0,245,255,0.06);border:1px solid rgba(0,245,255,0.2);border-radius:4px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
-.file-name{flex:1;font-size:12px;color:var(--cyan);font-family:'JetBrains Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.file-del{background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 4px}
-.progress-wrap{display:flex;align-items:center;gap:10px;margin-bottom:20px}
-.progress-bar{flex:1;height:3px;background:rgba(0,245,255,0.1);border-radius:2px;overflow:hidden}
-.progress-fill{height:100%;background:var(--cyan);border-radius:2px;transition:width .4s;box-shadow:var(--glow-c)}
-.progress-text{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)}
-.q-num{font-size:10px;color:var(--purple);font-family:'JetBrains Mono',monospace;letter-spacing:2px;margin-bottom:8px}
-.q-text{font-size:16px;font-weight:700;color:var(--text);line-height:1.6;margin-bottom:22px}
-.choices{display:flex;flex-direction:column;gap:10px}
-.choice{background:rgba(0,10,30,0.9);border:1px solid rgba(0,245,255,0.2);border-radius:4px;padding:14px 16px;cursor:pointer;display:flex;align-items:flex-start;gap:12px;transition:all .2s;font-size:14px;color:var(--text);line-height:1.5;text-align:left;width:100%}
-.choice-key{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--cyan);flex-shrink:0;width:20px}
-.choice.correct{border-color:var(--green);background:rgba(0,255,136,0.08);color:var(--green)}
-.choice.correct .choice-key{color:var(--green)}
-.choice.wrong{border-color:var(--red);background:rgba(255,34,68,0.08);color:var(--red)}
-.choice.wrong .choice-key{color:var(--red)}
-.choice.show-ans{border-color:var(--green);background:rgba(0,255,136,0.04)}
-.choice.show-ans .choice-key{color:var(--green)}
-.explanation{margin-top:14px;padding:14px;background:rgba(0,20,50,0.8);border:1px solid rgba(155,89,255,0.3);border-radius:4px;font-size:13px;color:rgba(224,224,255,0.8);line-height:1.7}
-.exp-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--purple);letter-spacing:2px;margin-bottom:8px}
-.score-circle{width:130px;height:130px;border-radius:50%;border:2px solid var(--cyan);box-shadow:var(--glow-c);display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,245,255,0.04);margin:0 auto 12px}
-.score-num{font-family:'JetBrains Mono',monospace;font-size:38px;font-weight:700;color:var(--cyan);line-height:1}
-.score-denom{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);margin-top:4px}
-.score-grade{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;text-align:center;margin-bottom:20px}
-.result-table{background:rgba(0,10,30,0.9);border:1px solid rgba(0,245,255,0.15);border-radius:4px;padding:4px 16px;margin-bottom:16px}
-.result-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(0,245,255,0.08);font-size:13px}
-.result-row:last-child{border-bottom:none}
-.result-val{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--cyan)}
-.review-item{background:rgba(0,10,30,0.9);border:1px solid rgba(155,89,255,0.15);border-radius:4px;padding:14px;margin-bottom:8px}
-.review-q{font-size:13px;color:var(--text);margin-bottom:8px;line-height:1.5}
-.review-ans{font-size:11px;font-family:'JetBrains Mono',monospace;margin-top:4px;line-height:1.6}
-.review-wrong{color:var(--red)}
-.review-correct{color:var(--green)}
-.review-exp{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6}
-.btn-row{display:flex;gap:10px;margin-top:16px}
-.btn-row .btn{flex:1}
-.status-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:16px;padding:40px}
-.status-icon{font-size:48px}
-.status-text{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--cyan);letter-spacing:1px;text-align:center;line-height:2.2}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
-.blink{animation:blink 1.4s ease-in-out infinite}
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,15,.88);display:none;align-items:center;justify-content:center;padding:20px;z-index:50;backdrop-filter:blur(4px)}
-.modal-bg.on{display:flex}
-.modal{background:rgba(0,15,40,0.98);border:1px solid var(--cyan);border-radius:4px;padding:28px;width:100%;max-width:320px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--glow-c)}
-.modal-title{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan);letter-spacing:2px;font-weight:700}
-.code-box{background:rgba(155,89,255,0.08);border:1px solid rgba(155,89,255,0.3);border-radius:4px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.code-label{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:2px}
-.code-val{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--purple)}
-::-webkit-scrollbar{width:3px}
-::-webkit-scrollbar-thumb{background:rgba(0,245,255,0.2);border-radius:2px}
+:root{--bg:#0e1330;--panel:#1a2150;--tx:#f4f1ff;--or:#ff7a1a;--ye:#ffd23f;--gr:#3ddc97;--rd:#ff4d4d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic UI",system-ui,sans-serif;line-height:1.5}
+#app{max-width:640px;margin:0 auto;padding:16px}
+h1{font-size:28px;margin:8px 0;color:var(--ye)}
+button,input{font:inherit;border-radius:10px;border:2px solid #3a447f;padding:10px 14px;background:var(--panel);color:var(--tx)}
+button{background:var(--or);border-color:var(--or);color:#1b0e00;font-weight:700;cursor:pointer}
+button.sub{background:transparent;color:var(--tx);border-color:#3a447f}
+input{width:100%;margin:4px 0}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.code{font-size:40px;font-weight:800;letter-spacing:.15em;color:var(--ye)}
+.pls{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+.pl{background:var(--panel);border:2px solid #3a447f;border-radius:12px;padding:6px 10px;min-width:56px;text-align:center}
+.pl b{display:block;font-size:12px;color:#9aa3d8}
+.pl.on{border-color:var(--or);box-shadow:0 0 14px var(--or);background:#3b2410}
+.fuse{height:10px;background:#2a3166;border-radius:6px;overflow:hidden}
+.fuse i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--ye),var(--or))}
+#tm{font-size:64px;font-weight:800;text-align:center;line-height:1.1}
+#tm.lo{color:var(--rd)}
+h2{font-size:18px;margin:12px 0 6px}
+ul{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+li{display:flex;justify-content:space-between;gap:8px;background:var(--panel);border:2px solid #3a447f;border-radius:10px;padding:8px 12px;min-height:44px}
+li.ok{border-color:var(--gr);background:#12382f}
+li em{font-style:normal;color:var(--gr);font-weight:700}
+li.hint em{color:#6a73ad;font-weight:400}
+li.tap{cursor:pointer}
+.big{font-size:22px;font-weight:800;text-align:center;margin:10px 0}
+.bad{color:var(--rd)}
+small{color:#9aa3d8}
 </style>
 </head>
 <body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+// 問題データ: [タイトル, "表示|答え(/区切りで別解);..."]  出典: りんとちゃーの花しらべ「ネプリーグ過去問題集 2024年前期」
+const RAW=[
+["次のチーズの名前を答えよ","|モッツァレラ;|ゴルゴンゾーラ;|カマンベール;|チェダー;|マスカルポーネ;|ゴーダ;|リコッタ;|ミモレット;|ラクレット"],
+["次の日本語訳に当てはまる英熟語を答えよ","あきらめる （　）up|give;放課後 （　）school|after;〜することができる be（　）to〜|able;ところで by the（　）|way;互いに （　）other|each;〜の世話をする take（　）of|care;今朝 （　）morning|this;実現する （　）true|come;当時 in（　）days|those"],
+["次の日本史の偉人の名前を読みなさい","卑弥呼|ひみこ;厩戸皇子|うまやどのみこ;小野妹子|おののいもこ;在原業平|ありわらのなりひら;菅原道真|すがわらのみちざね;菱川師宣|ひしかわもろのぶ;田沼意次|たぬまおきつぐ;本居宣長|もとおりのりなが;大久保利通|おおくぼとしみち"],
+["次の有名な条約の名前を答えなさい","南（　）条約|京;日（　）条約|米修好通商;下（　）条約|関;ポ（　）条約|ーツマス;ベ（　）条約|ルサイユ/ヴェルサイユ;サ（　）条約|ンフランシスコ平和/ンフランシスコ;核（　）条約|拡散防止;ラ（　）条約|ムサール;ワ（　）条約|シントン"],
+["次の世界の観光名所がある国名を答えよ","タイムズスクエア|アメリカ;エッフェル塔|フランス;バッキンガム宮殿|イギリス;ケルン大聖堂|ドイツ;サグラダファミリア|スペイン;マチュピチュ|ペルー;イースター島|チリ;タージマハル|インド;アンコールワット|カンボジア"],
+["次の定番パスタの名前を答えよ","|ナポリタン;|ペペロンチーノ;|カルボナーラ;|たらこスパゲッティ/たらこ;|ボンゴレ;|ジェノベーゼ;|ボロネーゼ;|ペスカトーレ;|アラビアータ"],
+["次の日付が表す国民の祝日を答えよ","3月20日|春分の日;4月29日|昭和の日;7月15日|海の日;8月12日|山の日;9月16日|敬老の日;9月22日|秋分の日;10月14日|スポーツの日;11月3日|文化の日;11月22日|勤労感謝の日"],
+["次のオリンピック開催都市がある国名を答えよ","アテネ|ギリシャ;リオデジャネイロ|ブラジル;モントリオール|カナダ;ヘルシンキ|フィンランド;ストックホルム|スウェーデン;トリノ|イタリア;リレハンメル|ノルウェー;アルベールビル|フランス;レークプラシッド|アメリカ"],
+["「目」を使った慣用句の空欄を埋めよ","（　）の目にも涙|鬼;目から（　）が落ちる|うろこ/鱗;目から（　）が出る|火;目と（　）の先|鼻;目の上の（　）|たんこぶ;目（　）を立てる|くじら/鯨;目が（　）になる|点;弱り目に（　）目|祟り/たたり;目の（　）に困る|やり場"],
+["広辞苑に載っている3文字の熟語。空欄を埋めよ","金（　）塔|字;青（　）井|天;絵（　）事|空;花（　）雪|吹;雪（　）花|月;目（　）見|論;猪（　）才|口;山（　）花|茶;蒲（　）英|公"],
+["次の英語で書かれた料理名を和訳せよ","french fry|フライドポテト/ポテト;sunny-side up egg|目玉焼き;spring roll|春巻き;hand rolled sushi|手巻き寿司/手巻き;pork cutlet|とんかつ/豚カツ;miso soup|味噌汁/みそ汁/みそしる;deep-fried oyster|カキフライ/牡蠣フライ;beef bowl|牛丼;sweet-and-sour pork|酢豚"],
+["次の「しい」で終わる言葉の読みを答えよ","騒々しい|そうぞうしい;神々しい|こうごうしい;初々しい|ういういしい;仰々しい|ぎょうぎょうしい;刺々しい|とげとげしい;猛々しい|たけだけしい;凛々しい|りりしい;瑞々しい|みずみずしい;毳々しい|けばけばしい"]
+];
+const Q=RAW.map(([t,s])=>[t,s.split(';').map(x=>{const[p,a]=x.split('|');return{p,a}})]);
+const TIME=60000, KEY='hb_used';
+const $=s=>document.querySelector(s), app=$('#app');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm=s=>s.normalize('NFKC').toLowerCase().replace(/[\s・、。]/g,'').replace(/[ァ-ン]/g,c=>String.fromCharCode(c.charCodeAt(0)-96)).replace(/条約$/,'');
+const fill=(p,a)=>p.replace(/（[^）]*）/,a);
+const match=(it,x)=>{const t=norm(x);return t&&it.a.split('/').some(a=>norm(a)===t||(it.p.includes('（')&&norm(fill(it.p,a))===t))};
+const getUsed=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return[]}};
+const setUsed=u=>{try{localStorage.setItem(KEY,JSON.stringify(u))}catch(e){}};
+let role,peer,conn,S,St,recv=0;
 
-<div id="pg-login" class="pg on">
-  <div class="auth-box">
-    <div class="logo">KAT-TON AI</div>
-    <p class="sub">ファイルをアップロードするだけで<br>AIが問題を自動生成します</p>
-    <button class="btn" id="btn-google">
-      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
-      Googleでログイン
-    </button>
-    <div class="err" id="login-err"></div>
-  </div>
-</div>
-
-<div id="pg-home" class="pg">
-  <div class="hdr"><div class="hdr-title">KAT-TON AI</div><div class="hdr-badge" id="home-badge"></div></div>
-  <div class="wrap">
-    <div class="sec">MY TEAMS</div>
-    <div id="team-list"><div class="empty">読み込み中...</div></div>
-    <button class="btn purple" id="btn-create-team" style="margin-top:8px">＋ チームを作成</button>
-    <button class="btn" id="btn-join-team" style="margin-top:8px">🔑 招待コードで参加</button>
-  </div>
-</div>
-
-<div id="pg-team" class="pg">
-  <div class="hdr">
-    <button class="hdr-back" id="team-back">← 戻る</button>
-    <div class="hdr-title" id="team-hdr-title">TEAM</div>
-    <div class="hdr-badge" id="team-badge"></div>
-  </div>
-  <div class="wrap">
-    <div class="code-box">
-      <div><div class="code-label">招待コード</div><div class="code-val" id="team-code-val"></div></div>
-      <button class="btn sm purple" id="btn-copy-code">コピー</button>
-    </div>
-    <div class="sec">QUIZ SETS</div>
-    <div id="quiz-list"><div class="empty">問題セットがありません</div></div>
-    <button class="btn" id="btn-upload" style="margin-top:8px">＋ 資料から問題を作成</button>
-  </div>
-</div>
-
-<div id="pg-upload" class="pg">
-  <div class="hdr">
-    <button class="hdr-back" id="upload-back">← 戻る</button>
-    <div class="hdr-title">NEW QUIZ</div>
-  </div>
-  <div id="upload-body" class="wrap">
-    <div class="field-label">タイトル</div>
-    <input class="field" id="quiz-title" type="text" placeholder="例: 第1章まとめ" maxlength="40" style="margin-bottom:16px">
-    <div class="field-label">問題数</div>
-    <input type="number" class="field" id="q-count" value="10" min="1" max="20" style="width:100px;text-align:center;margin-bottom:16px">
-    <div class="field-label" style="margin-bottom:6px">資料をアップロード</div>
-    <div class="upload-zone" id="upload-zone">
-      <div class="upload-zone-icon">📄</div>
-      <div class="upload-zone-text">PDF・画像・テキストをタップして選択<br>教科書・ノート・資料なんでもOK</div>
-    </div>
-    <input type="file" id="file-input" accept=".pdf,.png,.jpg,.jpeg,.txt,.md" multiple style="display:none">
-    <div id="file-list"></div>
-    <div class="err" id="upload-err"></div>
-    <button class="btn" id="btn-queue">📤 問題を作成する</button>
-  </div>
-  <div class="status-wrap" id="upload-status" style="display:none">
-    <div class="status-icon blink">📤</div>
-    <div class="status-text" id="upload-status-text">処理をリクエスト中...</div>
-  </div>
-</div>
-
-<div id="pg-waiting" class="pg">
-  <div class="hdr">
-    <button class="hdr-back" id="waiting-back">← チームに戻る</button>
-    <div class="hdr-title">GENERATING</div>
-  </div>
-  <div class="status-wrap">
-    <div class="status-icon blink">🤖</div>
-    <div class="status-text" id="waiting-text">AIが問題を生成中です<br>このままお待ちください<br><br>通常1〜3分で完了します</div>
-  </div>
-</div>
-
-<div id="pg-quiz" class="pg">
-  <div class="hdr">
-    <button class="hdr-back" id="quiz-exit">✕</button>
-    <div class="hdr-title" id="quiz-hdr-title">QUIZ</div>
-  </div>
-  <div class="wrap" id="quiz-wrap">
-    <div class="progress-wrap">
-      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-      <div class="progress-text" id="progress-text">0/0</div>
-    </div>
-    <div class="q-num" id="q-num">Q1</div>
-    <div class="q-text" id="q-text"></div>
-    <div class="choices" id="choices"></div>
-    <div id="exp-wrap" style="display:none">
-      <div class="explanation"><div class="exp-label">EXPLANATION</div><div id="exp-text"></div></div>
-    </div>
-    <div id="next-wrap" style="display:none;margin-top:16px">
-      <button class="btn" id="next-btn">次の問題 →</button>
-    </div>
-  </div>
-</div>
-
-<div id="pg-result" class="pg">
-  <div class="hdr"><div class="hdr-title">RESULT</div><div class="hdr-badge" id="result-badge"></div></div>
-  <div class="wrap">
-    <div class="score-circle">
-      <div class="score-num" id="res-score">0</div>
-      <div class="score-denom">/ <span id="res-total">0</span></div>
-    </div>
-    <div class="score-grade" id="res-grade"></div>
-    <div class="result-table">
-      <div class="result-row"><span>正解</span><span class="result-val" id="res-correct">0問</span></div>
-      <div class="result-row"><span>不正解</span><span class="result-val" id="res-wrong" style="color:var(--red)">0問</span></div>
-      <div class="result-row"><span>正答率</span><span class="result-val" id="res-rate">0%</span></div>
-      <div class="result-row"><span>所要時間</span><span class="result-val" id="res-time">0:00</span></div>
-    </div>
-    <div class="sec">復習（間違えた問題）</div>
-    <div id="review-list"></div>
-    <div class="btn-row">
-      <button class="btn" id="btn-retry">もう一度</button>
-      <button class="btn purple" id="btn-to-team">チームへ</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-bg" id="modal-create">
-  <div class="modal">
-    <div class="modal-title">CREATE TEAM</div>
-    <div class="field-label">チーム名</div>
-    <input class="field" id="new-team-name" type="text" placeholder="例: 数学グループ" maxlength="30">
-    <div class="err" id="create-err"></div>
-    <button class="btn" id="btn-do-create">作成する</button>
-    <button class="btn red sm" id="btn-cancel-create" style="width:100%">キャンセル</button>
-  </div>
-</div>
-
-<div class="modal-bg" id="modal-join">
-  <div class="modal">
-    <div class="modal-title">JOIN TEAM</div>
-    <div class="field-label">招待コード（6桁）</div>
-    <input class="field" id="join-code" type="text" placeholder="XXXXXX" maxlength="6" style="text-align:center;letter-spacing:4px;font-size:20px">
-    <div class="err" id="join-err"></div>
-    <button class="btn" id="btn-do-join">参加する</button>
-    <button class="btn red sm" id="btn-cancel-join" style="width:100%">キャンセル</button>
-  </div>
-</div>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getDatabase, ref, push, get, set, update, onValue, off } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-const fbApp = initializeApp({
-  apiKey:"AIzaSyDl8UJ_ibhxGrtZ6vfyPit5S3_vACs371U",
-  authDomain:"onlychat-de190.firebaseapp.com",
-  databaseURL:"https://onlychat-de190-default-rtdb.firebaseio.com",
-  projectId:"onlychat-de190",
-  storageBucket:"onlychat-de190.firebasestorage.app",
-  messagingSenderId:"619416583908",
-  appId:"1:619416583908:web:ba5b8487baa5322fb2f6f1"
-});
-const auth = getAuth(fbApp);
-const db = getDatabase(fbApp);
-const provider = new GoogleAuthProvider();
-
-let myUid=null,myName=null,currentTeam=null,currentQuizSet=null;
-let currentQ=0,userAnswers=[],startTime=0,uploadedFiles=[],waitingListener=null;
-
-function go(id){document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));document.getElementById(id).classList.add('on');}
-const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const fmtDate=ts=>ts?new Date(ts).toLocaleDateString('ja'):'';
-
-async function sha256hex(file){
-  const buf=await file.arrayBuffer();
-  const hb=await crypto.subtle.digest('SHA-256',buf);
-  return Array.from(new Uint8Array(hb)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-async function toBase64(file){
-  return new Promise((res,rej)=>{const r=new FileReader();r.onerror=rej;r.onload=e=>res(e.target.result);r.readAsDataURL(file);});
-}
-
-// Auth - リダイレクト結果を先に処理
-getRedirectResult(auth).catch(e=>console.error('redirect error:',e));
-
-onAuthStateChanged(auth,async user=>{
-  if(!user){go('pg-login');return;}
-  myUid=user.uid;myName=user.displayName||user.email||'USER';
-  document.getElementById('home-badge').textContent=myName;
-  document.getElementById('team-badge').textContent=myName;
-  document.getElementById('result-badge').textContent=myName;
-  await loadTeams();go('pg-home');
-});
-document.getElementById('btn-google').onclick=async()=>{
-  document.getElementById('login-err').textContent='';
-  try{await signInWithRedirect(auth,provider);}
-  catch(e){document.getElementById('login-err').textContent='ログインに失敗しました';console.error(e);}
-};
-
-// チーム
-async function loadTeams(){
-  const el=document.getElementById('team-list');
-  el.innerHTML='<div class="empty">読み込み中...</div>';
-  try{
-    const snap=await get(ref(db,`userTeams/${myUid}`));
-    const ids=snap.val()?Object.keys(snap.val()):[];
-    if(!ids.length){el.innerHTML='<div class="empty">チームがありません<br>作成または招待コードで参加してください</div>';return;}
-    el.innerHTML='';
-    for(const tid of ids){
-      const ts=await get(ref(db,`teams/${tid}`));
-      if(!ts.exists())continue;
-      const t=ts.val();
-      const d=document.createElement('div');d.className='team-btn';
-      d.innerHTML=`<div><div class="team-name">${esc(t.name)}</div><div class="team-meta">招待コード: ${t.code} · ${t.memberCount||1}人</div></div><span style="color:var(--purple);font-size:20px">›</span>`;
-      d.onclick=()=>enterTeam({id:tid,...t});
-      el.appendChild(d);
-    }
-  }catch(e){el.innerHTML='<div class="empty">読み込みに失敗しました</div>';}
-}
-function enterTeam(team){
-  currentTeam=team;
-  document.getElementById('team-hdr-title').textContent=team.name;
-  document.getElementById('team-code-val').textContent=team.code;
-  loadQuizSets();go('pg-team');
-}
-document.getElementById('team-back').onclick=()=>{currentTeam=null;go('pg-home');};
-document.getElementById('btn-copy-code').onclick=async()=>{
-  if(!currentTeam)return;
-  try{await navigator.clipboard.writeText(currentTeam.code);
-    const btn=document.getElementById('btn-copy-code');btn.textContent='✅ コピー済み';
-    setTimeout(()=>btn.textContent='コピー',2000);}catch(e){}
-};
-document.getElementById('btn-create-team').onclick=()=>{
-  document.getElementById('new-team-name').value='';document.getElementById('create-err').textContent='';
-  document.getElementById('modal-create').classList.add('on');
-  setTimeout(()=>document.getElementById('new-team-name').focus(),100);
-};
-document.getElementById('btn-cancel-create').onclick=()=>document.getElementById('modal-create').classList.remove('on');
-document.getElementById('btn-do-create').onclick=async()=>{
-  const name=document.getElementById('new-team-name').value.trim();
-  const err=document.getElementById('create-err');
-  if(!name){err.textContent='チーム名を入力してください';return;}
-  const code=Math.random().toString(36).slice(2,8).toUpperCase();
-  const now=Date.now();
-  const teamRef=await push(ref(db,'teams'),{name,code,createdBy:myUid,createdAt:now,memberCount:1});
-  const tid=teamRef.key;
-  await set(ref(db,`teamCodes/${code}`),tid);
-  await set(ref(db,`userTeams/${myUid}/${tid}`),true);
-  document.getElementById('modal-create').classList.remove('on');
-  await loadTeams();
-  const ts=await get(ref(db,`teams/${tid}`));
-  enterTeam({id:tid,...ts.val()});
-};
-document.getElementById('btn-join-team').onclick=()=>{
-  document.getElementById('join-code').value='';document.getElementById('join-err').textContent='';
-  document.getElementById('modal-join').classList.add('on');
-  setTimeout(()=>document.getElementById('join-code').focus(),100);
-};
-document.getElementById('btn-cancel-join').onclick=()=>document.getElementById('modal-join').classList.remove('on');
-document.getElementById('btn-do-join').onclick=async()=>{
-  const code=document.getElementById('join-code').value.trim().toUpperCase();
-  const err=document.getElementById('join-err');
-  if(code.length!==6){err.textContent='6桁のコードを入力してください';return;}
-  const cs=await get(ref(db,`teamCodes/${code}`));
-  if(!cs.exists()){err.textContent='チームが見つかりません';return;}
-  const tid=cs.val();
-  const already=await get(ref(db,`userTeams/${myUid}/${tid}`));
-  if(already.exists()){err.textContent='既に参加済みです';return;}
-  await set(ref(db,`userTeams/${myUid}/${tid}`),true);
-  const ts=await get(ref(db,`teams/${tid}`));
-  const mc=(ts.val().memberCount||1)+1;
-  await update(ref(db,`teams/${tid}`),{memberCount:mc});
-  document.getElementById('modal-join').classList.remove('on');
-  await loadTeams();
-  enterTeam({id:tid,...ts.val(),memberCount:mc});
-};
-
-// 問題セット一覧
-async function loadQuizSets(){
-  const el=document.getElementById('quiz-list');
-  el.innerHTML='<div class="empty">読み込み中...</div>';
-  if(!currentTeam)return;
-  const snap=await get(ref(db,`quizSets/${currentTeam.id}`));
-  const data=snap.val()||{};
-  const entries=Object.entries(data).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
-  if(!entries.length){el.innerHTML='<div class="empty">問題セットがありません<br>下のボタンから作成できます</div>';return;}
-  el.innerHTML='';
-  entries.forEach(([id,qs])=>{
-    const card=document.createElement('div');card.className='card';
-    const qCount=qs.questions?.length||0;
-    const myScore=qs.scores?.[myUid];
-    const status=qs.status||'completed';
-    let statusTag='';
-    if(status==='pending')statusTag='<span class="tag tag-orange">⏳ 処理待ち</span>';
-    else if(status==='processing')statusTag='<span class="tag tag-orange blink">🤖 生成中</span>';
-    else if(status==='failed')statusTag='<span class="tag tag-red">❌ 失敗</span>';
-    else statusTag=`<span class="tag tag-cyan">${qCount}問</span>`;
-    card.innerHTML=`<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px"><div class="card-title">${esc(qs.title||'無題')}</div>${statusTag}</div><div class="card-meta" style="margin-top:6px"><span>${fmtDate(qs.createdAt)}</span>${myScore!=null?`<span class="tag tag-green">前回 ${myScore}/${qCount}</span>`:''}</div>`;
-    if(status==='completed'&&qCount>0)card.onclick=()=>startQuiz({id,teamId:currentTeam.id,...qs});
-    else if(status==='pending'||status==='processing')card.onclick=()=>watchProcessing(id,qs.title);
-    el.appendChild(card);
-  });
-}
-document.getElementById('btn-upload').onclick=()=>{
-  uploadedFiles=[];
-  document.getElementById('file-list').innerHTML='';
-  document.getElementById('upload-err').textContent='';
-  document.getElementById('quiz-title').value='';
-  document.getElementById('q-count').value='10';
-  document.getElementById('upload-body').style.display='';
-  document.getElementById('upload-status').style.display='none';
-  go('pg-upload');
-};
-document.getElementById('upload-back').onclick=()=>go('pg-team');
-
-// ファイル
-document.getElementById('upload-zone').onclick=()=>document.getElementById('file-input').click();
-document.getElementById('file-input').onchange=e=>{Array.from(e.target.files).forEach(addFile);e.target.value='';};
-const uz=document.getElementById('upload-zone');
-['dragover','dragenter'].forEach(ev=>uz.addEventListener(ev,e=>{e.preventDefault();uz.classList.add('drag');}));
-['dragleave','drop'].forEach(ev=>uz.addEventListener(ev,e=>{e.preventDefault();uz.classList.remove('drag');if(ev==='drop')Array.from(e.dataTransfer.files).forEach(addFile);}));
-function addFile(file){
-  if(file.size>10*1024*1024){alert('10MB以下のファイルを選択してください');return;}
-  if(uploadedFiles.find(f=>f.name===file.name))return;
-  uploadedFiles.push(file);renderFiles();
-}
-function renderFiles(){
-  const el=document.getElementById('file-list');el.innerHTML='';
-  uploadedFiles.forEach((f,i)=>{
-    const d=document.createElement('div');d.className='file-item';
-    d.innerHTML=`<span class="file-name">📎 ${esc(f.name)}</span><button class="file-del">✕</button>`;
-    d.querySelector('button').onclick=()=>{uploadedFiles.splice(i,1);renderFiles();};
-    el.appendChild(d);
-  });
-}
-
-// Gemini API直接呼び出し
-const GEMINI_API_KEY = 'AIzaSyAQ.Ab8RN6IF4pESBRg0182ebjHIRXOvoNmWVbm620MQqjAOJUzTRA';
-const GEMINI_MODEL = 'gemini-2.5-flash';
-
-async function geminiGenerate(parts) {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-    { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ contents:[{parts}], generationConfig:{temperature:0.7,maxOutputTokens:8000} }) }
-  );
-  const d = await res.json();
-  if(!res.ok) throw new Error(`Gemini失敗 ${res.status}: ${d.error?.message||''}`);
-  const text = d.candidates?.[0]?.content?.parts?.[0]?.text||'';
-  const first=text.indexOf('{'),last=text.lastIndexOf('}');
-  if(first===-1) throw new Error('JSONが見つかりません');
-  return JSON.parse(text.slice(first,last+1));
-}
-
-document.getElementById('btn-queue').onclick=queueJob;
-async function queueJob(){
-  const err=document.getElementById('upload-err');err.textContent='';
-  if(!uploadedFiles.length){err.textContent='資料をアップロードしてください';return;}
-  const title=document.getElementById('quiz-title').value.trim()||'無題クイズ';
-  const qCount=Math.min(20,Math.max(1,parseInt(document.getElementById('q-count').value)||10));
-
-  document.getElementById('upload-body').style.display='none';
-  document.getElementById('upload-status').style.display='flex';
-  document.getElementById('upload-status-text').textContent='ファイルを解析中...';
-
-  try{
-    // SHA-256ハッシュ生成
-    const fileInfos=[];
-    for(const file of uploadedFiles){
-      const hash=await sha256hex(file);
-      const b64=await toBase64(file);
-      fileInfos.push({hash,name:file.name,type:file.type||'application/octet-stream',size:file.size,data:b64.split(',')[1]});
-    }
-    const combined=fileInfos.map(f=>f.hash).join('_');
-    const combinedBuf=new TextEncoder().encode(combined);
-    const combinedHashBuf=await crypto.subtle.digest('SHA-256',combinedBuf);
-    const materialHash=Array.from(new Uint8Array(combinedHashBuf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-
-    document.getElementById('upload-status-text').textContent='重複チェック中...';
-
-    // 同じ資料・同じ問題数の既存クイズ確認
-    const idxKey=`${materialHash}_${qCount}`;
-    const existingIdx=await get(ref(db,`quizSetIndex/${currentTeam.id}/${idxKey}`));
-    if(existingIdx.exists()){
-      const qsId=existingIdx.val();
-      const qsSnap=await get(ref(db,`quizSets/${currentTeam.id}/${qsId}`));
-      if(qsSnap.exists()&&(qsSnap.val().questions?.length||0)>0){
-        document.getElementById('upload-body').style.display='';
-        document.getElementById('upload-status').style.display='none';
-        uploadedFiles=[];renderFiles();
-        startQuiz({id:qsId,teamId:currentTeam.id,...qsSnap.val()});
-        return;
-      }
-    }
-
-    // 解析済みデータ確認
-    let analysis=null;
-    const existingMat=await get(ref(db,`materials/${currentTeam.id}/${materialHash}`));
-    if(existingMat.exists()&&existingMat.val().analyzed){
-      console.log('♻️ 既存解析データ再利用');
-      analysis=existingMat.val().analysis;
-    } else {
-      // 初回解析（Gemini）
-      document.getElementById('upload-status-text').textContent='AIが資料を読み込み中...';
-      const parts=[];
-      for(const f of fileInfos){
-        if(f.type.startsWith('image/')){
-          parts.push({inline_data:{mime_type:f.type,data:f.data}});
-        } else if(f.type==='application/pdf'){
-          parts.push({inline_data:{mime_type:'application/pdf',data:f.data}});
-        } else {
-          const text=atob(f.data);
-          parts.push({text:`ファイル名: ${f.name}
-
-${text}`});
-        }
-      }
-      parts.push({text:`以下の資料を解析してJSONのみで回答してください（前置き不要）:
-{"summary":"概要","topics":[],"keywords":[],"importantPoints":[],"facts":[],"definitions":[]}`});
-      analysis=await geminiGenerate(parts);
-      // 解析結果保存
-      await set(ref(db,`materials/${currentTeam.id}/${materialHash}`),{
-        analyzed:true,analysis,fileNames:fileInfos.map(f=>f.name),analyzedAt:Date.now()
-      });
-    }
-
-    // 問題生成
-    document.getElementById('upload-status-text').textContent=`AIが${qCount}問を生成中...`;
-    const analysisText=JSON.stringify(analysis,null,2);
-    const qParts=[{text:`以下の資料解析データから${qCount}問の四択クイズを作成してください。
-
-資料:
-${analysisText}
-
-JSONのみで回答（前置き不要）:
-{"questions":[{"q":"問題文","choices":["A. 選択肢1","B. 選択肢2","C. 選択肢3","D. 選択肢4"],"answer":0,"explanation":"解説"}]}
-
-- answerは0〜3
-- 選択肢はA.B.C.D.で始める
-- 問題数は${qCount}問`}];
-    const result=await geminiGenerate(qParts);
-    if(!Array.isArray(result.questions)||!result.questions.length) throw new Error('問題が生成されませんでした');
-
-    // Firebase保存
-    const qsRef=await push(ref(db,`quizSets/${currentTeam.id}`),{
-      title,materialHash,qCount,status:'completed',
-      questions:result.questions,createdAt:Date.now(),createdBy:myUid
+/* ---------- 出題者 ---------- */
+function host(){
+  role='h';S={ph:'lobby',pl:[],it:[],c:0,title:'',wrong:null,res:null,msg:''};
+  const code=String(Math.floor(1000+Math.random()*9000));
+  peer=new Peer('hbomb-'+code);
+  peer.on('open',()=>{S.code=code;draw()});
+  peer.on('error',e=>{if(e.type==='unavailable-id')host();else alert('接続エラー: '+e.type)});
+  peer.on('connection',c=>{
+    c.on('data',m=>{
+      if(m.t==='join'&&!S.pl.some(p=>p.c===c)){S.pl.push({c,n:String(m.n||'名無し').slice(0,12)});bc()}
+      if(m.t==='ans'){const p=S.pl.find(p=>p.c===c);if(S.ph==='play'&&p&&p===cur())judge(m.x,p)}
     });
-    const qsId=qsRef.key;
-    await set(ref(db,`quizSetIndex/${currentTeam.id}/${idxKey}`),qsId);
+    c.on('close',()=>{if(S.ph==='lobby'||S.ph==='res'){S.pl=S.pl.filter(p=>p.c!==c);bc()}});
+  });
+}
+const slots=()=>{const k=Math.min(5,S.pl.length),a=[...Array(k).keys()];return a.concat([...a].reverse())};
+const cur=()=>{const s=slots();return s.length?S.pl[s[S.c%s.length]]:null};
+function pub(p,all){
+  return{ph:S.ph,code:S.code,title:S.title,c:S.c,wrong:S.wrong,res:S.res,msg:S.msg,
+    rem:S.ph==='play'?S.end-Date.now():0,
+    pl:S.pl.map(x=>({n:x.n})),me:S.pl.indexOf(p),cur:S.pl.indexOf(cur()),
+    it:S.it.map(i=>({p:i.p,d:i.d,by:i.by,a:(all||i.d||S.ph==='res')?i.a.split('/')[0]:null}))}
+}
+function bc(){S.pl.forEach(p=>{if(p.c.open)p.c.send(pub(p))});draw()}
+function nextQ(){
+  if(!S.pl.length)return alert('参加者がまだいません');
+  const used=getUsed(),av=Q.map((_,i)=>i).filter(i=>!used.includes(i));
+  if(!av.length){S.msg='全問出題済みです。リセットするとまた出題できます。';S.ph='lobby';return bc()}
+  const i=av[Math.floor(Math.random()*av.length)];setUsed(used.concat(i));
+  S.msg='';S.title=Q[i][0];S.it=Q[i][1].map(x=>({...x,d:0}));S.c=0;S.wrong=null;S.res=null;S.ph='ready';bc();
+}
+function start(){S.ph='play';S.end=Date.now()+TIME;S.wrong=null;bc()}
+function end(r){S.ph='res';S.res=r;bc()}
+function judge(x,p){
+  const i=S.it.findIndex(t=>!t.d&&match(t,x));
+  if(i<0){S.wrong={n:p.n,x};bc()}else mark(i,p.n);
+}
+function mark(i,n){
+  S.it[i].d=1;S.it[i].by=n;S.c++;S.wrong=null;
+  S.it.every(t=>t.d)?end('clear'):bc();
+}
+function ovr(i){if(S.ph==='play'&&!S.it[i].d)mark(i,'出題者判定')}
+function resetUsed(){if(confirm('出題済みの履歴をリセットして、全問を再び出題対象に戻しますか？')){setUsed([]);S.msg='リセットしました。';draw()}}
 
-    document.getElementById('upload-body').style.display='';
-    document.getElementById('upload-status').style.display='none';
-    uploadedFiles=[];renderFiles();
-    startQuiz({id:qsId,teamId:currentTeam.id,title,questions:result.questions});
+/* ---------- 参加者 ---------- */
+function goJoin(){
+  const n=$('#nm').value.trim(),code=$('#cd').value.trim();
+  if(!n||!code)return alert('名前と部屋コードを入力してください');
+  role='p';St=null;draw();
+  peer=new Peer();
+  peer.on('open',()=>{
+    conn=peer.connect('hbomb-'+code,{reliable:true});
+    conn.on('open',()=>conn.send({t:'join',n}));
+    conn.on('data',s=>{St=s;recv=Date.now();draw()});
+    conn.on('close',()=>{alert('出題者との接続が切れました');location.reload()});
+  });
+  peer.on('error',()=>{alert('部屋に接続できません。部屋コードを確認してください');location.reload()});
+}
+function send(){const e=$('#ans');if(e&&e.value.trim()){conn.send({t:'ans',x:e.value});e.value='';e.focus()}}
 
-  }catch(e){
-    console.error(e);
-    document.getElementById('upload-body').style.display='';
-    document.getElementById('upload-status').style.display='none';
-    err.textContent='エラー: '+e.message;
+/* ---------- 表示 ---------- */
+function draw(){
+  if(!role){
+    app.innerHTML=`<h1>💣 ハイパーボンバー</h1><p>答えが10個ある問題を、5人で順番にリレーして60秒以内に答えきれ！</p>
+    <div class="row"><button onclick="host()">出題者になる</button></div><hr style="border-color:#3a447f">
+    <h2>参加者として入る</h2><input id="nm" placeholder="名前" maxlength="12"><input id="cd" placeholder="部屋コード（4桁）" inputmode="numeric" value="${esc(location.hash.slice(1))}">
+    <div class="row"><button onclick="goJoin()">入る</button></div>
+    <small>非公式ファン作品です。問題の出典：りんとちゃーの花しらべ「ネプリーグ過去問題集」</small>`;return;
   }
+  const h=role==='h',st=h?pub(null,true):St;
+  if(!st){app.innerHTML='<p>接続中…</p>';return}
+  const play=st.ph==='play',k=Math.min(5,st.pl.length);
+  let o=h?`<div>部屋コード</div><div class="code">${esc(st.code||'…')}</div><small>参加者はこのコードを入力（URL末尾に #${esc(st.code||'')} を付けても可）</small>`:`<h1>💣 ハイパーボンバー</h1>`;
+  o+=`<div class="pls">${st.pl.slice(0,5).map((p,i)=>`<div class="pl ${play&&i===st.cur?'on':''}"><b>${i+1}枠目</b>${play&&i===st.cur?'💣':''}${esc(p.n)}</div>`).join('')||'<small>参加者を待っています…</small>'}</div>`;
+  if(st.pl.length>5)o+=`<small>観戦 ${st.pl.length-5}人</small>`;
+  if(st.msg)o+=`<p>${esc(st.msg)}</p>`;
+  if(st.ph!=='lobby'){
+    o+=`<div class="fuse"><i id="fz"></i></div><div id="tm">60</div><h2>${esc(st.title)}（${st.it.length}個）</h2><ul>`+
+    st.it.map((t,i)=>`<li class="${t.d?'ok':h?'hint':''} ${h&&play&&!t.d?'tap':''}" ${h&&play&&!t.d?`onclick="ovr(${i})"`:''}><span>${esc(t.p)||'?'}</span><em>${t.a!=null?esc(t.a):''}${t.d?` <small>${esc(t.by)}</small>`:''}</em></li>`).join('')+'</ul>';
+    if(st.wrong)o+=`<p class="bad">✗ ${esc(st.wrong.n)}：${esc(st.wrong.x)}</p>`;
+    if(st.ph==='res')o+=`<div class="big">${st.res==='clear'?'🎉 爆弾解除！ 全問正解':'💥 BOOM！ '+st.c+'個正解'}</div>`;
+    if(h&&play)o+='<small>誤判定は、答えを灰色表示の項目タップで正解にできます</small>';
+  }
+  if(h){
+    const u=getUsed().length;
+    o+=`<div class="row">${st.ph==='ready'?'<button onclick="start()">スタート</button>':st.ph==='play'?'<button class="sub" onclick="end(\'boom\')">強制終了</button>':'<button onclick="nextQ()">次の問題を出す</button>'}<button class="sub" onclick="resetUsed()">出題履歴をリセット</button></div><small>出題済み ${u} / ${Q.length}問</small>`;
+  }else{
+    const my=st.me,mine=my>=0&&my<5,turn=play&&st.cur===my;
+    o+=`<p class="big">${st.ph==='lobby'?'出題者の開始待ち':st.ph==='ready'?'問題を確認して待機…':play?(turn?'あなたの番！':esc((st.pl[st.cur]||{}).n)+'さんの番'):''}</p><small>${mine?`あなたは${my+1}枠目`:'観戦中'}（参加${st.pl.length}人）</small>`;
+    if(turn)o+=`<div class="row"><input id="ans" autocomplete="off" placeholder="答えを入力" onkeydown="if(event.key==='Enter')send()" style="flex:1"><button onclick="send()">答える</button></div>`;
+  }
+  app.innerHTML=o;
+  const e=$('#ans');if(e)e.focus();
+  updT();
 }
-
-// 処理待ちリスナー
-function watchProcessing(qsId,title){
-  if(waitingListener)off(waitingListener);
-  document.getElementById('waiting-text').textContent=`「${title}」の問題を生成中です\nこのままお待ちください\n\n通常1〜3分で完了します`;
-  go('pg-waiting');
-  const qsRef=ref(db,`quizSets/${currentTeam.id}/${qsId}`);
-  waitingListener=qsRef;
-  onValue(qsRef,snap=>{
-    if(!snap.exists())return;
-    const qs=snap.val();
-    if(qs.status==='completed'&&(qs.questions?.length||0)>0){
-      off(waitingListener);waitingListener=null;
-      startQuiz({id:qsId,teamId:currentTeam.id,...qs});
-    }else if(qs.status==='failed'){
-      off(waitingListener);waitingListener=null;
-      alert('問題の生成に失敗しました。もう一度お試しください。');
-      loadQuizSets();go('pg-team');
-    }
-  });
+function updT(){
+  const t=$('#tm');if(!t)return;
+  const ph=role==='h'?S.ph:St&&St.ph;
+  let r=ph==='ready'?TIME:ph==='play'?(role==='h'?S.end-Date.now():St.rem-(Date.now()-recv)):0;
+  if(role==='h'&&ph==='play'&&r<=0)return end('boom');
+  r=Math.max(0,r);t.textContent=Math.ceil(r/1000);t.classList.toggle('lo',r<10000);$('#fz').style.width=r/TIME*100+'%';
 }
-document.getElementById('waiting-back').onclick=()=>{
-  if(waitingListener){off(waitingListener);waitingListener=null;}
-  loadQuizSets();go('pg-team');
-};
-
-// クイズ
-function startQuiz(qs){
-  currentQuizSet=qs;currentQ=0;
-  userAnswers=new Array(qs.questions.length).fill(null);startTime=Date.now();
-  document.getElementById('quiz-hdr-title').textContent=qs.title||'QUIZ';
-  go('pg-quiz');renderQ();
-}
-document.getElementById('quiz-exit').onclick=()=>{if(confirm('クイズを中断しますか？')){loadQuizSets();go('pg-team');}};
-function renderQ(){
-  const q=currentQuizSet.questions[currentQ];const total=currentQuizSet.questions.length;
-  document.getElementById('progress-fill').style.width=`${(currentQ/total)*100}%`;
-  document.getElementById('progress-text').textContent=`${currentQ+1}/${total}`;
-  document.getElementById('q-num').textContent=`Q${currentQ+1}`;
-  document.getElementById('q-text').textContent=q.q;
-  document.getElementById('exp-wrap').style.display='none';
-  document.getElementById('next-wrap').style.display='none';
-  const choicesEl=document.getElementById('choices');choicesEl.innerHTML='';
-  const KEYS=['A','B','C','D'];
-  q.choices.forEach((c,i)=>{
-    const btn=document.createElement('button');btn.className='choice';
-    btn.innerHTML=`<span class="choice-key">${KEYS[i]}</span><span>${esc(c.replace(/^[ABCD]\.\s*/,''))}</span>`;
-    btn.onclick=()=>answerQ(i);choicesEl.appendChild(btn);
-  });
-  document.getElementById('quiz-wrap').scrollTop=0;
-}
-function answerQ(idx){
-  const q=currentQuizSet.questions[currentQ];
-  userAnswers[currentQ]=idx;
-  const choices=document.querySelectorAll('.choice');
-  choices.forEach((c,i)=>{c.onclick=null;if(i===q.answer)c.classList.add(idx===i?'correct':'show-ans');else if(i===idx)c.classList.add('wrong');});
-  if(q.explanation){document.getElementById('exp-text').textContent=q.explanation;document.getElementById('exp-wrap').style.display='block';}
-  document.getElementById('next-btn').textContent=(currentQ===currentQuizSet.questions.length-1)?'結果を見る →':'次の問題 →';
-  document.getElementById('next-wrap').style.display='block';
-}
-document.getElementById('next-btn').onclick=()=>{currentQ++;if(currentQ>=currentQuizSet.questions.length){showResult();return;}renderQ();};
-
-// 結果
-async function showResult(){
-  const qs=currentQuizSet.questions;
-  const correct=userAnswers.filter((a,i)=>a===qs[i].answer).length;
-  const total=qs.length,rate=Math.round(correct/total*100);
-  const elapsed=Math.floor((Date.now()-startTime)/1000);
-  document.getElementById('res-score').textContent=correct;
-  document.getElementById('res-total').textContent=total;
-  document.getElementById('res-correct').textContent=correct+'問';
-  document.getElementById('res-wrong').textContent=(total-correct)+'問';
-  document.getElementById('res-rate').textContent=rate+'%';
-  document.getElementById('res-time').textContent=`${Math.floor(elapsed/60)}:${String(elapsed%60).padStart(2,'0')}`;
-  const grade=rate>=90?'🏆 EXCELLENT!':rate>=70?'✨ GREAT!':rate>=50?'👍 GOOD':'📚 KEEP GOING';
-  const color=rate>=90?'var(--green)':rate>=70?'var(--cyan)':rate>=50?'var(--purple)':'var(--muted)';
-  const grEl=document.getElementById('res-grade');grEl.textContent=grade;grEl.style.color=color;
-  const KEYS=['A','B','C','D'];
-  const rv=document.getElementById('review-list');rv.innerHTML='';
-  qs.forEach((q,i)=>{
-    if(userAnswers[i]===q.answer)return;
-    const d=document.createElement('div');d.className='review-item';
-    const ua=userAnswers[i];
-    d.innerHTML=`<div class="review-q">${esc(q.q)}</div><div class="review-ans review-wrong">あなた: ${ua!=null?KEYS[ua]+'. '+q.choices[ua].replace(/^[ABCD]\.\s*/,''):'未回答'}</div><div class="review-ans review-correct">正解: ${KEYS[q.answer]}. ${q.choices[q.answer].replace(/^[ABCD]\.\s*/,'')}</div>${q.explanation?`<div class="review-exp">${esc(q.explanation)}</div>`:''}`;
-    rv.appendChild(d);
-  });
-  if(!rv.children.length)rv.innerHTML='<div class="empty" style="padding:16px">全問正解！🎉</div>';
-  try{await update(ref(db,`quizSets/${currentQuizSet.teamId}/${currentQuizSet.id}/scores`),{[myUid]:correct});}catch(e){}
-  go('pg-result');
-}
-document.getElementById('btn-retry').onclick=()=>startQuiz(currentQuizSet);
-document.getElementById('btn-to-team').onclick=()=>{loadQuizSets();go('pg-team');};
+setInterval(updT,100);
+draw();
 </script>
 </body>
 </html>
