@@ -50,10 +50,13 @@ small{color:#9aa3d8}
 .card.miss{opacity:.55}
 .card.new{animation:fl .6s ease}
 @keyframes fl{from{transform:rotateY(90deg)}to{transform:rotateY(0)}}
+#as{position:fixed;right:56px;bottom:14px;max-width:70vw;font-size:12px;font-weight:700;color:#1b0e00;background:var(--ye);padding:4px 8px;border-radius:8px;display:none;z-index:9}
+#mt{position:fixed;right:10px;bottom:10px;padding:6px 10px;opacity:.85;background:var(--bg)}
 </style>
 </head>
 <body>
 <div id="app"></div>
+<span id="as" onclick="tapPlay()"></span><button id="mt" class="sub" onclick="togMute()">🔊</button>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
 // 問題データ: [タイトル, "表示|答え(/区切りで別解);..."]  出典: りんとちゃーの花しらべ「ネプリーグ過去問題集 2024年前期」
@@ -160,7 +163,8 @@ const RAW=[
 ["次の有名な観光地の名前を正しく読め","北谷（沖縄県）|ちゃたん;美瑛（北海道）|びえい;三田（兵庫県）|さんだ;長万部（北海道）|おしゃまんべ;石廊崎（静岡県）|いろうざき"]
 ];
 const Q=RAW.map(([t,s])=>[t,s.split(';').map(x=>{const[p,a]=x.split('|');return{p,a}})]);
-const TIME=60000, KEY='hb_used';
+const TIME=60000, LEAD=5000, KEY='hb_used';
+const aud=new Audio('bgm.mp3');aud.preload='auto';let mute=false,started=false;
 const $=s=>document.querySelector(s), app=$('#app');
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const getUsed=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return[]}};
@@ -169,7 +173,7 @@ let role,peer,conn,S,St,recv=0;
 
 /* ---------- 出題者 ---------- */
 function host(){
-  role='h';S={ph:'lobby',pl:[],it:[],c:0,title:'',wrong:null,res:null,msg:''};
+  unlock();role='h';S={ph:'lobby',pl:[],it:[],c:0,title:'',wrong:null,res:null,msg:''};
   const code=String(Math.floor(1000+Math.random()*9000));
   peer=new Peer('hbomb-'+code);
   peer.on('open',()=>{S.code=code;draw()});
@@ -197,7 +201,7 @@ function nextQ(){
   const i=av[Math.floor(Math.random()*av.length)];setUsed(used.concat(i));
   S.msg='';S.title=Q[i][0];S.it=Q[i][1].map(x=>({...x,d:0}));S.c=0;S.wrong=null;S.res=null;S.ph='ready';bc();
 }
-function start(){S.ph='play';S.end=Date.now()+TIME;S.wrong=null;bc()}
+function start(){S.ph='play';S.end=Date.now()+LEAD+TIME;S.wrong=null;bc()}
 function end(r){S.ph='res';S.res=r;bc()}
 function mark(i,n){
   S.it[i].d=1;S.it[i].by=n;S.c++;S.wrong=null;
@@ -210,7 +214,7 @@ function resetUsed(){if(confirm('出題済みの履歴をリセットして、�
 function goJoin(){
   const n=$('#nm').value.trim(),code=$('#cd').value.trim();
   if(!n||!code)return alert('名前と部屋コードを入力してください');
-  role='p';St=null;draw();
+  unlock();role='p';St=null;draw();
   peer=new Peer();
   peer.on('open',()=>{
     conn=peer.connect('hbomb-'+code,{reliable:true});
@@ -281,9 +285,35 @@ function updT(){
   const ph=role==='h'?S.ph:St&&St.ph;
   let r=ph==='ready'?TIME:ph==='play'?(role==='h'?S.end-Date.now():St.rem-(Date.now()-recv)):0;
   if(role==='h'&&ph==='play'&&r<=0)return end('boom');
-  r=Math.max(0,r);t.textContent=Math.ceil(r/1000);t.classList.toggle('lo',r<10000);$('#fz').style.width=r/TIME*100+'%';
+  r=Math.max(0,Math.min(TIME,r));t.textContent=Math.ceil(r/1000);t.classList.toggle('lo',r<10000);$('#fz').style.width=r/TIME*100+'%';
 }
-setInterval(updT,100);
+let unlocked=false;
+function unlock(){
+  if(unlocked)return;unlocked=true;
+  try{const p=aud.play();if(p&&p.catch)p.catch(()=>{});aud.pause();aud.currentTime=0}catch(e){}
+}
+['pointerdown','touchend','click'].forEach(ev=>document.addEventListener(ev,unlock,{passive:true}));
+function togMute(){mute=!mute;aud.muted=mute;$('#mt').textContent=mute?'🔇':'🔊'}
+let blocked=false;
+function say(t,click){const e=$('#as');if(!e)return;e.textContent=t;e.style.display=t?'block':'none';e.style.cursor=click?'pointer':'default'}
+aud.addEventListener('canplaythrough',()=>{say('🎵 音声ファイルOK');setTimeout(()=>{if(!blocked)say('')},3000)},{once:true});
+aud.addEventListener('error',()=>say('⚠ 音声ファイル bgm.mp3 が読み込めません（ファイル名と置き場所を確認）'));
+function startAudio(){
+  const rem=role==='h'?S.end-Date.now():St.rem-(Date.now()-recv);
+  try{aud.currentTime=Math.min(LEAD+TIME,Math.max(0,(LEAD+TIME-rem)/1000))}catch(e){}
+  const p=aud.play();
+  if(p&&p.then)p.then(()=>{blocked=false;say('')}).catch(e=>{
+    if(e&&e.name==='NotAllowedError'){blocked=true;say('🔊 ここをタップして音楽を有効化',true)}
+    else if(!aud.error)say('⚠ 再生できません（'+(e&&e.name)+'）');
+  });
+}
+function tapPlay(){if(blocked&&started)startAudio()}
+function audioSync(){
+  const ph=role==='h'?(S&&S.ph):(St&&St.ph);
+  if(ph==='play'){if(!started){started=true;startAudio()}}
+  else{started=false;if(blocked){blocked=false;say('')}if(!aud.paused)aud.pause()}
+}
+setInterval(()=>{audioSync();updT()},100);
 draw();
 </script>
 </body>
