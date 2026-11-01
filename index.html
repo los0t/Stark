@@ -34,6 +34,19 @@ li.tap{cursor:pointer}
 .big{font-size:22px;font-weight:800;text-align:center;margin:10px 0}
 .bad{color:var(--rd)}
 small{color:#9aa3d8}
+.q{text-align:center;font-weight:800;font-size:20px;margin:6px 0}
+.q small{display:block;color:var(--ye);font-size:14px}
+.bar{display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:8px;margin:6px 0}
+.me{font-size:13px;color:#9aa3d8}
+.tmw{text-align:center}.tmw small{display:block}.tmw #tm{font-size:48px}
+.cur{justify-self:end;text-align:right;border:2px solid #3a447f;border-radius:10px;padding:4px 10px;max-width:100%}
+.cur.on{border-color:var(--or);box-shadow:0 0 12px var(--or)}
+.cur small{display:block;color:#9aa3d8;font-size:11px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:12px 0;perspective:800px}
+.card{background:#fff;color:#000;border:4px solid #000;border-radius:6px;min-height:88px;display:flex;align-items:center;justify-content:center;text-align:center;padding:4px;font-weight:800;word-break:break-all}
+.card.rev{color:#ff1a1a}.card.miss{opacity:.55}
+.card.new{animation:fl .6s ease}
+@keyframes fl{from{transform:rotateY(90deg)}to{transform:rotateY(0)}}
 </style>
 </head>
 <body>
@@ -216,6 +229,7 @@ function draw(){
   }
   const h=role==='h',st=h?pub(null,true):St;
   if(!st){app.innerHTML='<p>接続中…</p>';return}
+  if(!h){drawP(st);return}
   const play=st.ph==='play',k=Math.min(5,st.pl.length);
   let o=h?`<div>部屋コード</div><div class="code">${esc(st.code||'…')}</div><small>参加者はこのコードを入力（URL末尾に #${esc(st.code||'')} を付けても可）</small>`:`<h1>💣 ハイパーボンバー</h1>`;
   o+=`<div class="pls">${st.pl.slice(0,5).map((p,i)=>`<div class="pl ${play&&i===st.cur?'on':''}"><b>${i+1}枠目</b>${play&&i===st.cur?'💣':''}${esc(p.n)}</div>`).join('')||'<small>参加者を待っています…</small>'}</div>`;
@@ -236,6 +250,26 @@ function draw(){
   }
   app.innerHTML=o;
   const e=$('#ans');if(e)e.focus();
+  updT();
+}
+let prevD=[],prevK='';
+function drawP(st){
+  const play=st.ph==='play',my=st.me,mine=my>=0&&my<5,turn=play&&st.cur===my;
+  const meT=mine?`あなたは<b>${my+1}</b>枠目`:'観戦中';
+  if(st.ph==='lobby'){app.innerHTML=`<h1>💣 ハイパーボンバー</h1><p class="big">${esc(st.msg||'出題者の開始待ち')}</p><small>${meT}（参加${st.pl.length}人）</small>`;return}
+  const k=st.title+st.it.length;if(k!==prevK){prevD=[];prevK=k}
+  const cur=play&&st.pl[st.cur]?st.pl[st.cur].n:'—';
+  const cards=st.it.map((t,i)=>{
+    const rev=t.d||st.ph==='res',txt=String(rev?t.a:t.p),fs=txt.length>14?13:txt.length>8?17:24;
+    return `<div class="card ${rev?'rev':''} ${rev&&!t.d?'miss':''} ${rev&&!prevD[i]?'new':''}" style="font-size:${fs}px">${esc(txt)}</div>`;
+  }).join('');
+  prevD=st.it.map(t=>!!(t.d||st.ph==='res'));
+  app.innerHTML=`<div class="q"><small>【問題】</small>${esc(st.title)}</div>
+  <div class="bar"><div class="me">${meT}</div><div class="tmw"><small>制限時間</small><div id="tm">60</div></div><div class="cur ${turn?'on':''}"><small>回答者</small><b>${play?'💣 ':''}${esc(cur)}</b></div></div>
+  <div class="fuse"><i id="fz"></i></div>
+  <div class="grid">${cards}</div>
+  ${st.ph==='res'?`<div class="big">${st.res==='clear'?'🎉 爆弾解除！':'💥 BOOM！ '+st.c+'個正解'}</div>`:''}
+  <p class="big">${turn?'あなたの番！声で答えよう':st.ph==='ready'?'問題を確認して待機…':''}</p>`;
   updT();
 }
 function updT(){
