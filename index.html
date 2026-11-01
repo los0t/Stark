@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
@@ -47,6 +47,9 @@ small{color:#9aa3d8}
 .card.rev{padding:0;flex-direction:column;align-items:stretch;justify-content:stretch}
 .card.rev .cy{background:#e3c514;padding:5px 4px;text-align:center;border-bottom:3px solid #000}
 .card.rev .ca{flex:1;display:flex;align-items:center;justify-content:center;color:#ff1a1a;padding:4px}
+.card{position:relative}
+.no{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#000;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;z-index:1}
+.card.rev .no{background:#fff;color:#000;top:2px;left:3px}
 .card.miss{opacity:.55}
 .card.new{animation:fl .6s ease}
 @keyframes fl{from{transform:rotateY(90deg)}to{transform:rotateY(0)}}
@@ -268,8 +271,9 @@ function drawP(st){
   const cur=play&&st.pl[st.cur]?st.pl[st.cur].n:'—';
   const cards=st.it.map((t,i)=>{
     const rev=t.d||st.ph==='res',f=x=>x.length>14?13:x.length>8?17:24,g=x=>x.length>14?11:x.length>8?13:15;
-    if(!rev)return `<div class="card" style="font-size:${f(t.p)}px">${esc(t.p)}</div>`;
-    return `<div class="card rev ${t.d?'':'miss'} ${prevD[i]?'':'new'}"><div class="cy" style="font-size:${g(t.p)}px">${esc(t.p)}</div><div class="ca" style="font-size:${f(String(t.a))}px">${esc(t.a)}</div></div>`;
+    const no=`<span class="no">${i+1}</span>`;
+    if(!rev)return `<div class="card" style="font-size:${f(t.p)}px">${no}${esc(t.p)}</div>`;
+    return `<div class="card rev ${t.d?'':'miss'} ${prevD[i]?'':'new'}">${no}<div class="cy" style="font-size:${g(t.p)}px">${esc(t.p)}</div><div class="ca" style="font-size:${f(String(t.a))}px">${esc(t.a)}</div></div>`;
   }).join('');
   prevD=st.it.map(t=>!!(t.d||st.ph==='res'));
   app.innerHTML=`<div class="q"><small>【問題】</small>${esc(st.title)}</div>
@@ -296,7 +300,6 @@ function unlock(){
 function togMute(){mute=!mute;aud.muted=mute;$('#mt').textContent=mute?'🔇':'🔊'}
 let blocked=false;
 function say(t,click){const e=$('#as');if(!e)return;e.textContent=t;e.style.display=t?'block':'none';e.style.cursor=click?'pointer':'default'}
-aud.addEventListener('canplaythrough',()=>{say('🎵 音声ファイルOK');setTimeout(()=>{if(!blocked)say('')},3000)},{once:true});
 aud.addEventListener('error',()=>say('⚠ 音声ファイル bgm.mp3 が読み込めません（ファイル名と置き場所を確認）'));
 function startAudio(){
   const rem=role==='h'?S.end-Date.now():St.rem-(Date.now()-recv);
