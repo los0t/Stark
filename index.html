@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
@@ -47,9 +47,9 @@ small{color:#9aa3d8}
 .card.rev{padding:0;flex-direction:column;align-items:stretch;justify-content:stretch}
 .card.rev .cy{background:#e3c514;padding:5px 4px;text-align:center;border-bottom:3px solid #000}
 .card.rev .ca{flex:1;display:flex;align-items:center;justify-content:center;color:#ff1a1a;padding:4px}
-.card{position:relative}
-.no{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#000;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;z-index:1}
-.card.rev .no{background:#fff;color:#000;top:2px;left:3px}
+.card{flex-direction:column;align-items:stretch;justify-content:flex-start;padding:0;min-height:100px;overflow:hidden}
+.nr{background:#000;color:#fff;font-size:13px;font-weight:800;text-align:center;line-height:22px;height:22px;flex-shrink:0}
+.cb{flex:1;display:flex;align-items:center;justify-content:center;padding:4px;text-align:center}
 .card.miss{opacity:.55}
 .card.new{animation:fl .6s ease}
 @keyframes fl{from{transform:rotateY(90deg)}to{transform:rotateY(0)}}
@@ -271,8 +271,8 @@ function drawP(st){
   const cur=play&&st.pl[st.cur]?st.pl[st.cur].n:'—';
   const cards=st.it.map((t,i)=>{
     const rev=t.d||st.ph==='res',f=x=>x.length>14?13:x.length>8?17:24,g=x=>x.length>14?11:x.length>8?13:15;
-    const no=`<span class="no">${i+1}</span>`;
-    if(!rev)return `<div class="card" style="font-size:${f(t.p)}px">${no}${esc(t.p)}</div>`;
+    const no=`<div class="nr">${i+1}</div>`;
+    if(!rev)return `<div class="card">${no}<div class="cb" style="font-size:${f(t.p)}px">${esc(t.p)}</div></div>`;
     return `<div class="card rev ${t.d?'':'miss'} ${prevD[i]?'':'new'}">${no}<div class="cy" style="font-size:${g(t.p)}px">${esc(t.p)}</div><div class="ca" style="font-size:${f(String(t.a))}px">${esc(t.a)}</div></div>`;
   }).join('');
   prevD=st.it.map(t=>!!(t.d||st.ph==='res'));
