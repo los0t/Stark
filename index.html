@@ -53,13 +53,26 @@ small{color:#9aa3d8}
 .card.miss{opacity:.55}
 .card.new{animation:fl .6s ease}
 @keyframes fl{from{transform:rotateY(90deg)}to{transform:rotateY(0)}}
+@media(min-width:900px){
+#app.p{max-width:1280px;--s:1.7}
+#app.p .grid{gap:12px}
+#app.p .card{min-height:170px;border-width:5px}
+#app.p .nr{font-size:20px;height:32px;line-height:32px}
+#app.p .q{font-size:32px}#app.p .q small{font-size:18px}
+#app.p .tmw #tm{font-size:76px}
+#app.p .cur{font-size:22px;padding:6px 14px}
+#app.p .me{font-size:16px}
+#app.p .big{font-size:30px}
+}
+#vp{position:fixed;right:10px;bottom:52px;display:none;background:var(--panel);border:2px solid #3a447f;border-radius:10px;padding:10px 12px;z-index:9}
+#vp input{width:160px;margin:0;padding:0;accent-color:var(--or)}
 #as{position:fixed;right:56px;bottom:14px;max-width:70vw;font-size:12px;font-weight:700;color:#1b0e00;background:var(--ye);padding:4px 8px;border-radius:8px;display:none;z-index:9}
 #mt{position:fixed;right:10px;bottom:10px;padding:6px 10px;opacity:.85;background:var(--bg)}
 </style>
 </head>
 <body>
 <div id="app"></div>
-<span id="as" onclick="tapPlay()"></span><button id="mt" class="sub" onclick="togMute()">🔊</button>
+<span id="as" onclick="tapPlay()"></span><div id="vp"><input type="range" id="vr" min="0" max="100" step="5" value="100" oninput="setVol(this.value)"></div><button id="mt" class="sub" onclick="togVol()">🔊</button>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
 // 問題データ: [タイトル, "表示|答え(/区切りで別解);..."]  出典: りんとちゃーの花しらべ「ネプリーグ過去問題集 2024年前期」
@@ -167,7 +180,8 @@ const RAW=[
 ];
 const Q=RAW.map(([t,s])=>[t,s.split(';').map(x=>{const[p,a]=x.split('|');return{p,a}})]);
 const TIME=60000, LEAD=5000, KEY='hb_used';
-const aud=new Audio('bgm.mp3');aud.preload='auto';let mute=false,started=false;
+const aud=new Audio('bgm.mp3');aud.preload='auto';let started=false,vol=1;try{const v=localStorage.getItem('hb_vol');if(v!==null)vol=Math.min(1,Math.max(0,+v))}catch(e){}
+aud.volume=vol;
 const $=s=>document.querySelector(s), app=$('#app');
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const getUsed=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return[]}};
@@ -239,6 +253,7 @@ function draw(){
   }
   const h=role==='h',st=h?pub(null,true):St;
   if(!st){app.innerHTML='<p>接続中…</p>';return}
+  app.className=h?'':'p';
   if(!h){drawP(st);return}
   const play=st.ph==='play',k=Math.min(5,st.pl.length);
   let o=h?`<div>部屋コード</div><div class="code">${esc(st.code||'…')}</div><small>参加者はこのコードを入力（URL末尾に #${esc(st.code||'')} を付けても可）</small>`:`<h1>💣 ハイパーボンバー</h1>`;
@@ -272,8 +287,8 @@ function drawP(st){
   const cards=st.it.map((t,i)=>{
     const rev=t.d||st.ph==='res',f=x=>x.length>14?13:x.length>8?17:24,g=x=>x.length>14?11:x.length>8?13:15;
     const no=`<div class="nr">${i+1}</div>`;
-    if(!rev)return `<div class="card">${no}<div class="cb" style="font-size:${f(t.p)}px">${esc(t.p)}</div></div>`;
-    return `<div class="card rev ${t.d?'':'miss'} ${prevD[i]?'':'new'}">${no}<div class="cy" style="font-size:${g(t.p)}px">${esc(t.p)}</div><div class="ca" style="font-size:${f(String(t.a))}px">${esc(t.a)}</div></div>`;
+    if(!rev)return `<div class="card">${no}<div class="cb" style="font-size:calc(${f(t.p)}px*var(--s,1))">${esc(t.p)}</div></div>`;
+    return `<div class="card rev ${t.d?'':'miss'} ${prevD[i]?'':'new'}">${no}<div class="cy" style="font-size:calc(${g(t.p)}px*var(--s,1))">${esc(t.p)}</div><div class="ca" style="font-size:calc(${f(String(t.a))}px*var(--s,1))">${esc(t.a)}</div></div>`;
   }).join('');
   prevD=st.it.map(t=>!!(t.d||st.ph==='res'));
   app.innerHTML=`<div class="q"><small>【問題】</small>${esc(st.title)}</div>
@@ -297,7 +312,11 @@ function unlock(){
   try{const p=aud.play();if(p&&p.catch)p.catch(()=>{});aud.pause();aud.currentTime=0}catch(e){}
 }
 ['pointerdown','touchend','click'].forEach(ev=>document.addEventListener(ev,unlock,{passive:true}));
-function togMute(){mute=!mute;aud.muted=mute;$('#mt').textContent=mute?'🔇':'🔊'}
+function icon(){$('#mt').textContent=vol===0?'🔇':vol<.5?'🔉':'🔊'}
+function togVol(){const e=$('#vp');e.style.display=e.style.display==='block'?'none':'block'}
+function setVol(v){vol=v/100;aud.volume=vol;icon();try{localStorage.setItem('hb_vol',vol)}catch(e){}}
+document.addEventListener('click',e=>{if(!e.target.closest('#vp,#mt'))$('#vp').style.display='none'});
+$('#vr').value=vol*100;icon();
 let blocked=false;
 function say(t,click){const e=$('#as');if(!e)return;e.textContent=t;e.style.display=t?'block':'none';e.style.cursor=click?'pointer':'default'}
 aud.addEventListener('error',()=>say('⚠ 音声ファイル bgm.mp3 が読み込めません（ファイル名と置き場所を確認）'));
